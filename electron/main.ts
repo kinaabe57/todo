@@ -182,9 +182,6 @@ ipcMain.handle('download-update', () => {
 })
 
 ipcMain.handle('install-update', () => {
-  if (process.platform === 'darwin') {
-    shell.openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`)
-  }
   autoUpdater.quitAndInstall(false, true)
 })
 
