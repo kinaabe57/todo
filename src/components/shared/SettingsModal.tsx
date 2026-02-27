@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AppSettings } from '../../types'
 
 interface SettingsModalProps {
@@ -7,11 +7,34 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
+interface UpdateInfo {
+  hasUpdate: boolean
+  currentVersion: string
+  latestVersion?: string
+}
+
 export default function SettingsModal({ settings, onSave, onClose }: SettingsModalProps) {
   const [apiKey, setApiKey] = useState(settings.apiKey)
   const [celebrationSound, setCelebrationSound] = useState(settings.celebrationSoundEnabled)
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
+  const [appVersion, setAppVersion] = useState('')
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+
+  useEffect(() => {
+    window.electronAPI.getAppVersion().then(setAppVersion)
+  }, [])
+
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true)
+    try {
+      const info = await window.electronAPI.checkForUpdates()
+      setUpdateInfo(info)
+    } finally {
+      setIsCheckingUpdate(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,13 +129,38 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
           {/* About Section */}
           <div className="pt-4 border-t border-slate-200">
             <h4 className="text-sm font-medium text-slate-700 mb-2">About</h4>
-            <p className="text-xs text-slate-500">
-              Smart Todo v1.0.0
+            <p className="text-xs text-slate-500 mb-3">
+              Smart Todo v{appVersion || '...'}
               <br />
               An intelligent todo app powered by Claude AI.
               <br />
               Your data is stored locally on your computer.
             </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCheckUpdate}
+                disabled={isCheckingUpdate}
+                className="text-xs text-primary-600 hover:text-primary-700 disabled:text-slate-400"
+              >
+                {isCheckingUpdate ? 'Checking...' : 'Check for updates'}
+              </button>
+              {updateInfo && (
+                <span className="text-xs text-slate-500">
+                  {updateInfo.hasUpdate ? (
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI.openReleasePage()}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      v{updateInfo.latestVersion} available - Download
+                    </button>
+                  ) : (
+                    <span className="text-slate-400">You're up to date!</span>
+                  )}
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="flex justify-end gap-2 pt-2">

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { DatabaseService } from './services/database'
@@ -7,6 +7,9 @@ import { Project, Todo, Note, ChatMessage, AppSettings } from '../src/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+const GITHUB_REPO = 'kinaabe57/todo'
+const CURRENT_VERSION = app.getVersion()
 
 let mainWindow: BrowserWindow | null = null
 let db: DatabaseService
@@ -129,4 +132,35 @@ ipcMain.handle('get-settings', () => {
 
 ipcMain.handle('save-settings', (_event, settings: AppSettings) => {
   return db.saveSettings(settings)
+})
+
+// IPC Handlers for Updates
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
+    if (!response.ok) {
+      return { hasUpdate: false, currentVersion: CURRENT_VERSION }
+    }
+    const release = await response.json()
+    const latestVersion = release.tag_name.replace(/^v/, '')
+    const hasUpdate = latestVersion !== CURRENT_VERSION
+    return {
+      hasUpdate,
+      currentVersion: CURRENT_VERSION,
+      latestVersion,
+      releaseUrl: release.html_url,
+      releaseName: release.name
+    }
+  } catch (error) {
+    console.error('Failed to check for updates:', error)
+    return { hasUpdate: false, currentVersion: CURRENT_VERSION }
+  }
+})
+
+ipcMain.handle('open-release-page', () => {
+  shell.openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`)
+})
+
+ipcMain.handle('get-app-version', () => {
+  return CURRENT_VERSION
 })

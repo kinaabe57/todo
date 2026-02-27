@@ -30,6 +30,16 @@ interface ElectronAPI {
   
   getSettings: () => Promise<AppSettings | null>;
   saveSettings: (settings: AppSettings) => Promise<void>;
+  
+  checkForUpdates: () => Promise<{
+    hasUpdate: boolean;
+    currentVersion: string;
+    latestVersion?: string;
+    releaseUrl?: string;
+    releaseName?: string;
+  }>;
+  openReleasePage: () => Promise<void>;
+  getAppVersion: () => Promise<string>;
 }
 
 declare global {
