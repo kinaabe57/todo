@@ -62,8 +62,20 @@ ipcMain.handle('get-projects', () => {
   return db.getProjects()
 })
 
+ipcMain.handle('get-archived-projects', () => {
+  return db.getArchivedProjects()
+})
+
 ipcMain.handle('add-project', (_event, name: string, description: string) => {
   return db.addProject(name, description)
+})
+
+ipcMain.handle('archive-project', (_event, id: string) => {
+  return db.archiveProject(id)
+})
+
+ipcMain.handle('restore-project', (_event, id: string) => {
+  return db.restoreProject(id)
 })
 
 ipcMain.handle('delete-project', (_event, id: string) => {

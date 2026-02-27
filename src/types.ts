@@ -3,6 +3,8 @@ export interface Project {
   name: string;
   description: string;
   createdAt: string;
+  archived: boolean;
+  archivedAt: string | null;
 }
 
 export interface Note {

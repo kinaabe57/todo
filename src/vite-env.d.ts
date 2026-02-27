@@ -9,7 +9,10 @@ interface ClaudeResponse {
 
 interface ElectronAPI {
   getProjects: () => Promise<Project[]>;
+  getArchivedProjects: () => Promise<Project[]>;
   addProject: (name: string, description: string) => Promise<Project>;
+  archiveProject: (id: string) => Promise<Project>;
+  restoreProject: (id: string) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
   
   getTodos: () => Promise<Todo[]>;

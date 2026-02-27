@@ -17,7 +17,9 @@ export class DatabaseService {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        archived INTEGER DEFAULT 0,
+        archivedAt TEXT
       );
 
       CREATE TABLE IF NOT EXISTS todos (
@@ -52,12 +54,53 @@ export class DatabaseService {
         value TEXT NOT NULL
       );
     `)
+    
+    this.runMigrations()
+  }
+
+  private runMigrations() {
+    const tableInfo = this.db.prepare("PRAGMA table_info(projects)").all() as Array<{ name: string }>
+    const columns = tableInfo.map(col => col.name)
+    
+    if (!columns.includes('archived')) {
+      this.db.exec(`ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0`)
+    }
+    if (!columns.includes('archivedAt')) {
+      this.db.exec(`ALTER TABLE projects ADD COLUMN archivedAt TEXT`)
+    }
   }
 
   // Projects
   getProjects(): Project[] {
-    const stmt = this.db.prepare('SELECT * FROM projects ORDER BY createdAt DESC')
-    return stmt.all() as Project[]
+    const stmt = this.db.prepare('SELECT * FROM projects WHERE archived = 0 ORDER BY createdAt DESC')
+    const rows = stmt.all() as Array<{
+      id: string
+      name: string
+      description: string
+      createdAt: string
+      archived: number
+      archivedAt: string | null
+    }>
+    return rows.map(row => ({
+      ...row,
+      archived: Boolean(row.archived)
+    }))
+  }
+
+  getArchivedProjects(): Project[] {
+    const stmt = this.db.prepare('SELECT * FROM projects WHERE archived = 1 ORDER BY archivedAt DESC')
+    const rows = stmt.all() as Array<{
+      id: string
+      name: string
+      description: string
+      createdAt: string
+      archived: number
+      archivedAt: string | null
+    }>
+    return rows.map(row => ({
+      ...row,
+      archived: Boolean(row.archived)
+    }))
   }
 
   addProject(name: string, description: string): Project {
@@ -65,11 +108,52 @@ export class DatabaseService {
       id: uuidv4(),
       name,
       description,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      archived: false,
+      archivedAt: null
     }
-    const stmt = this.db.prepare('INSERT INTO projects (id, name, description, createdAt) VALUES (?, ?, ?, ?)')
-    stmt.run(project.id, project.name, project.description, project.createdAt)
+    const stmt = this.db.prepare('INSERT INTO projects (id, name, description, createdAt, archived, archivedAt) VALUES (?, ?, ?, ?, ?, ?)')
+    stmt.run(project.id, project.name, project.description, project.createdAt, 0, null)
     return project
+  }
+
+  archiveProject(id: string): Project {
+    const archivedAt = new Date().toISOString()
+    const stmt = this.db.prepare('UPDATE projects SET archived = 1, archivedAt = ? WHERE id = ?')
+    stmt.run(archivedAt, id)
+    
+    const getStmt = this.db.prepare('SELECT * FROM projects WHERE id = ?')
+    const row = getStmt.get(id) as {
+      id: string
+      name: string
+      description: string
+      createdAt: string
+      archived: number
+      archivedAt: string | null
+    }
+    return {
+      ...row,
+      archived: Boolean(row.archived)
+    }
+  }
+
+  restoreProject(id: string): Project {
+    const stmt = this.db.prepare('UPDATE projects SET archived = 0, archivedAt = NULL WHERE id = ?')
+    stmt.run(id)
+    
+    const getStmt = this.db.prepare('SELECT * FROM projects WHERE id = ?')
+    const row = getStmt.get(id) as {
+      id: string
+      name: string
+      description: string
+      createdAt: string
+      archived: number
+      archivedAt: string | null
+    }
+    return {
+      ...row,
+      archived: Boolean(row.archived)
+    }
   }
 
   deleteProject(id: string): void {

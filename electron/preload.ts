@@ -4,7 +4,10 @@ import { ChatMessage, AppSettings, Project, Todo, Note } from '../src/types'
 contextBridge.exposeInMainWorld('electronAPI', {
   // Projects
   getProjects: () => ipcRenderer.invoke('get-projects'),
+  getArchivedProjects: () => ipcRenderer.invoke('get-archived-projects'),
   addProject: (name: string, description: string) => ipcRenderer.invoke('add-project', name, description),
+  archiveProject: (id: string) => ipcRenderer.invoke('archive-project', id),
+  restoreProject: (id: string) => ipcRenderer.invoke('restore-project', id),
   deleteProject: (id: string) => ipcRenderer.invoke('delete-project', id),
 
   // Todos

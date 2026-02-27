@@ -3,12 +3,100 @@ import { Project, Todo, Note } from '../../types'
 import ProjectSection from './ProjectSection'
 import AddProjectModal from './AddProjectModal'
 
+interface ArchivedProjectCardProps {
+  project: Project
+  todos: Todo[]
+  onRestore: (id: string) => Promise<void>
+}
+
+function ArchivedProjectCard({ project, todos, onRestore }: ArchivedProjectCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const pendingTodos = todos.filter(t => !t.completed)
+  const completedTodos = todos.filter(t => t.completed)
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 text-left flex-1"
+        >
+          <svg
+            className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="font-medium text-slate-600">{project.name}</span>
+          <span className="text-xs text-slate-400">
+            ({todos.length} todo{todos.length !== 1 ? 's' : ''})
+          </span>
+          {project.archivedAt && (
+            <span className="text-xs text-slate-400">
+              · archived {new Date(project.archivedAt).toLocaleDateString()}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => onRestore(project.id)}
+          className="text-sm text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Restore
+        </button>
+      </div>
+
+      {isExpanded && todos.length > 0 && (
+        <div className="px-4 pb-3 border-t border-slate-100">
+          {pendingTodos.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs text-slate-400 mb-1">Pending ({pendingTodos.length})</p>
+              <ul className="space-y-1">
+                {pendingTodos.map(todo => (
+                  <li key={todo.id} className="flex items-center gap-2 text-sm text-slate-600 py-1">
+                    <span className="w-4 h-4 rounded border border-slate-300 flex-shrink-0" />
+                    <span>{todo.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {completedTodos.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs text-slate-400 mb-1">Completed ({completedTodos.length})</p>
+              <ul className="space-y-1">
+                {completedTodos.map(todo => (
+                  <li key={todo.id} className="flex items-center gap-2 text-sm text-slate-400 py-1">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="line-through">{todo.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {todos.length === 0 && (
+            <p className="text-sm text-slate-400 py-2">No todos in this project</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface TodoPanelProps {
   projects: Project[]
+  archivedProjects: Project[]
   todos: Todo[]
   notes: Note[]
   onAddProject: (name: string, description: string) => Promise<Project>
-  onDeleteProject: (id: string) => Promise<void>
+  onArchiveProject: (id: string) => Promise<void>
+  onRestoreProject: (id: string) => Promise<void>
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
@@ -18,10 +106,12 @@ interface TodoPanelProps {
 
 export default function TodoPanel({
   projects,
+  archivedProjects,
   todos,
   notes,
   onAddProject,
-  onDeleteProject,
+  onArchiveProject,
+  onRestoreProject,
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
@@ -29,6 +119,7 @@ export default function TodoPanel({
   celebrationEnabled
 }: TodoPanelProps) {
   const [showAddProject, setShowAddProject] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
 
   const handleAddProject = async (name: string, description: string) => {
     await onAddProject(name, description)
@@ -79,10 +170,44 @@ export default function TodoPanel({
               onToggleTodo={onToggleTodo}
               onDeleteTodo={onDeleteTodo}
               onAddNote={onAddNote}
-              onDeleteProject={onDeleteProject}
+              onArchiveProject={onArchiveProject}
               celebrationEnabled={celebrationEnabled}
             />
           ))
+        )}
+
+        {/* Archived Projects Section */}
+        {archivedProjects.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-3"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${showArchived ? 'rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="text-lg">📦</span>
+              Archived Projects ({archivedProjects.length})
+            </button>
+
+            {showArchived && (
+              <div className="space-y-2">
+                {archivedProjects.map(project => (
+                  <ArchivedProjectCard
+                    key={project.id}
+                    project={project}
+                    todos={todos.filter(t => t.projectId === project.id)}
+                    onRestore={onRestoreProject}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

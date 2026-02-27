@@ -26,6 +26,15 @@ body {
   flex-direction: column;
 }
 
+/* Title bar drag region */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

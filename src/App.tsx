@@ -6,6 +6,7 @@ import { Project, Todo, Note, ChatMessage, AppSettings } from './types'
 
 function App() {
   const [projects, setProjects] = useState<Project[]>([])
+  const [archivedProjects, setArchivedProjects] = useState<Project[]>([])
   const [todos, setTodos] = useState<Todo[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -19,14 +20,16 @@ function App() {
 
   const loadData = async () => {
     try {
-      const [projectsData, todosData, notesData, messagesData, settingsData] = await Promise.all([
+      const [projectsData, archivedProjectsData, todosData, notesData, messagesData, settingsData] = await Promise.all([
         window.electronAPI.getProjects(),
+        window.electronAPI.getArchivedProjects(),
         window.electronAPI.getTodos(),
         window.electronAPI.getNotes(),
         window.electronAPI.getMessages(),
         window.electronAPI.getSettings()
       ])
       setProjects(projectsData)
+      setArchivedProjects(archivedProjectsData)
       setTodos(todosData)
       setNotes(notesData)
       setMessages(messagesData)
@@ -46,11 +49,16 @@ function App() {
     return newProject
   }
 
-  const handleDeleteProject = async (id: string) => {
-    await window.electronAPI.deleteProject(id)
+  const handleArchiveProject = async (id: string) => {
+    const archivedProject = await window.electronAPI.archiveProject(id)
     setProjects(projects.filter(p => p.id !== id))
-    setTodos(todos.filter(t => t.projectId !== id))
-    setNotes(notes.filter(n => n.projectId !== id))
+    setArchivedProjects([archivedProject, ...archivedProjects])
+  }
+
+  const handleRestoreProject = async (id: string) => {
+    const restoredProject = await window.electronAPI.restoreProject(id)
+    setArchivedProjects(archivedProjects.filter(p => p.id !== id))
+    setProjects([restoredProject, ...projects])
   }
 
   const handleAddTodo = async (projectId: string, text: string, source: 'manual' | 'ai' = 'manual') => {
@@ -142,12 +150,12 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shadow-sm">
+      {/* Header - draggable title bar */}
+      <header className="drag-region flex items-center justify-between pl-20 pr-6 py-5 bg-white border-b border-slate-200 shadow-sm">
         <h1 className="text-xl font-semibold text-slate-800">Smart Todo</h1>
         <button
           onClick={() => setShowSettings(true)}
-          className="p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+          className="no-drag p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
           title="Settings"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,10 +183,12 @@ function App() {
         <div className="w-1/2">
           <TodoPanel
             projects={projects}
+            archivedProjects={archivedProjects}
             todos={todos}
             notes={notes}
             onAddProject={handleAddProject}
-            onDeleteProject={handleDeleteProject}
+            onArchiveProject={handleArchiveProject}
+            onRestoreProject={handleRestoreProject}
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             onDeleteTodo={handleDeleteTodo}
