@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="55%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+    <linearGradient id="checkGrad" x1="0" y1="1" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+    <filter id="boxShadow">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#4C1D95" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- App icon background (rounded square) -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
+
+  <!-- Subtle inner glow ring -->
+  <rect width="1024" height="1024" rx="220" ry="220"
+    fill="none" stroke="white" stroke-width="6" opacity="0.15"/>
+
+  <!-- Checkbox body (white card) -->
+  <rect x="192" y="192" width="640" height="640" rx="100" ry="100"
+    fill="white" filter="url(#boxShadow)"/>
+
+  <!-- Checkmark -->
+  <polyline
+    points="300,524 462,684 724,370"
+    fill="none"
+    stroke="url(#checkGrad)"
+    stroke-width="88"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <!-- Sparkle — top right (large) -->
+  <g transform="translate(822,168)">
+    <line x1="0" y1="-34" x2="0" y2="34" stroke="white" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+    <line x1="-34" y1="0" x2="34" y2="0" stroke="white" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+    <line x1="-22" y1="-22" x2="22" y2="22" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="22" y1="-22" x2="-22" y2="22" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  </g>
+
+  <!-- Sparkle — bottom left (medium) -->
+  <g transform="translate(186,836)">
+    <line x1="0" y1="-24" x2="0" y2="24" stroke="white" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    <line x1="-24" y1="0" x2="24" y2="0" stroke="white" stroke-width="11" stroke-linecap="round" opacity="0.75"/>
+    <line x1="-16" y1="-16" x2="16" y2="16" stroke="white" stroke-width="7" stroke-linecap="round" opacity="0.4"/>
+    <line x1="16" y1="-16" x2="-16" y2="16" stroke="white" stroke-width="7" stroke-linecap="round" opacity="0.4"/>
+  </g>
+
+  <!-- Sparkle — top left (small) -->
+  <g transform="translate(156,296)">
+    <line x1="0" y1="-16" x2="0" y2="16" stroke="white" stroke-width="9" stroke-linecap="round" opacity="0.6"/>
+    <line x1="-16" y1="0" x2="16" y2="0" stroke="white" stroke-width="9" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <!-- Floating dots -->
+  <circle cx="868" cy="560" r="14" fill="white" opacity="0.35"/>
+  <circle cx="148" cy="660" r="10" fill="white" opacity="0.3"/>
+  <circle cx="870" cy="820" r="9" fill="white" opacity="0.25"/>
+  <circle cx="310" cy="148" r="12" fill="white" opacity="0.3"/>
+</svg>

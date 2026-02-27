@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChatMessage, Project } from '../../types'
+import { ChatMessage, Project, Todo } from '../../types'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 
@@ -7,7 +7,7 @@ interface ChatPanelProps {
   messages: ChatMessage[]
   projects: Project[]
   onSendMessage: (content: string) => Promise<ChatMessage>
-  onAddTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<void>
+  onAddTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<Todo>
   onMarkTodoAdded: (messageId: string, todoIndex: number) => void
   hasApiKey: boolean
 }

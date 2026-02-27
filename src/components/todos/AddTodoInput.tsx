@@ -1,8 +1,9 @@
 import { useState, KeyboardEvent } from 'react'
+import { Todo } from '../../types'
 
 interface AddTodoInputProps {
   projectId: string
-  onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<void>
+  onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
 }
 
 export default function AddTodoInput({ projectId, onAddTodo }: AddTodoInputProps) {
