@@ -61,13 +61,17 @@ export class DatabaseService {
   private runMigrations() {
     const tableInfo = this.db.prepare("PRAGMA table_info(projects)").all() as Array<{ name: string }>
     const columns = tableInfo.map(col => col.name)
-    
+
     if (!columns.includes('archived')) {
       this.db.exec(`ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0`)
     }
     if (!columns.includes('archivedAt')) {
       this.db.exec(`ALTER TABLE projects ADD COLUMN archivedAt TEXT`)
     }
+
+    try {
+      this.db.exec(`ALTER TABLE todos ADD COLUMN priority TEXT DEFAULT 'medium'`)
+    } catch { /* column already exists */ }
   }
 
   // Projects
@@ -163,7 +167,12 @@ export class DatabaseService {
 
   // Todos
   getTodos(): Todo[] {
-    const stmt = this.db.prepare('SELECT * FROM todos ORDER BY createdAt DESC')
+    const stmt = this.db.prepare(`
+      SELECT * FROM todos ORDER BY
+        CASE WHEN completed = 0 THEN 0 ELSE 1 END,
+        CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 1 END,
+        createdAt DESC
+    `)
     const rows = stmt.all() as Array<{
       id: string
       projectId: string
@@ -172,6 +181,7 @@ export class DatabaseService {
       completedAt: string | null
       createdAt: string
       source: 'manual' | 'ai'
+      priority: 'high' | 'medium' | 'low'
     }>
     return rows.map(row => ({
       ...row,
@@ -187,10 +197,11 @@ export class DatabaseService {
       completed: false,
       completedAt: null,
       createdAt: new Date().toISOString(),
-      source
+      source,
+      priority: 'medium'
     }
-    const stmt = this.db.prepare('INSERT INTO todos (id, projectId, text, completed, completedAt, createdAt, source) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    stmt.run(todo.id, todo.projectId, todo.text, 0, null, todo.createdAt, todo.source)
+    const stmt = this.db.prepare('INSERT INTO todos (id, projectId, text, completed, completedAt, createdAt, source, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    stmt.run(todo.id, todo.projectId, todo.text, 0, null, todo.createdAt, todo.source, todo.priority)
     return todo
   }
 
@@ -198,7 +209,7 @@ export class DatabaseService {
     const completedAt = completed ? new Date().toISOString() : null
     const stmt = this.db.prepare('UPDATE todos SET completed = ?, completedAt = ? WHERE id = ?')
     stmt.run(completed ? 1 : 0, completedAt, id)
-    
+
     const getStmt = this.db.prepare('SELECT * FROM todos WHERE id = ?')
     const row = getStmt.get(id) as {
       id: string
@@ -208,6 +219,25 @@ export class DatabaseService {
       completedAt: string | null
       createdAt: string
       source: 'manual' | 'ai'
+      priority: 'high' | 'medium' | 'low'
+    }
+    return {
+      ...row,
+      completed: Boolean(row.completed)
+    }
+  }
+
+  updateTodoPriority(id: string, priority: 'high' | 'medium' | 'low'): Todo {
+    this.db.prepare(`UPDATE todos SET priority = ? WHERE id = ?`).run(priority, id)
+    const row = this.db.prepare(`SELECT * FROM todos WHERE id = ?`).get(id) as {
+      id: string
+      projectId: string
+      text: string
+      completed: number
+      completedAt: string | null
+      createdAt: string
+      source: 'manual' | 'ai'
+      priority: 'high' | 'medium' | 'low'
     }
     return {
       ...row,

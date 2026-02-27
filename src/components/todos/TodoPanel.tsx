@@ -100,6 +100,7 @@ interface TodoPanelProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
+  onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string, content: string) => Promise<Note>
   celebrationEnabled: boolean
 }
@@ -115,6 +116,7 @@ export default function TodoPanel({
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
+  onUpdateTodoPriority,
   onAddNote,
   celebrationEnabled
 }: TodoPanelProps) {
@@ -169,6 +171,7 @@ export default function TodoPanel({
               onAddTodo={onAddTodo}
               onToggleTodo={onToggleTodo}
               onDeleteTodo={onDeleteTodo}
+              onUpdateTodoPriority={onUpdateTodoPriority}
               onAddNote={onAddNote}
               onArchiveProject={onArchiveProject}
               celebrationEnabled={celebrationEnabled}

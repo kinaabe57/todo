@@ -3,15 +3,28 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Todo } from '../../types'
 import CelebrationEffect from '../shared/CelebrationEffect'
 
+const PRIORITY_CYCLE = { high: 'medium', medium: 'low', low: 'high' } as const
+const PRIORITY_COLOR = {
+  high: 'bg-red-400',
+  medium: 'bg-amber-400',
+  low: 'bg-slate-300'
+}
+const PRIORITY_LABEL = {
+  high: 'High priority',
+  medium: 'Medium priority',
+  low: 'Low priority'
+}
+
 interface TodoItemProps {
   todo: Todo
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
+  onUpdatePriority: (id: string, priority: 'high' | 'medium' | 'low') => void
   celebrationEnabled: boolean
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
 }
 
-export default function TodoItem({ todo, onToggle, onDelete, celebrationEnabled, dragHandleProps }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onDelete, onUpdatePriority, celebrationEnabled, dragHandleProps }: TodoItemProps) {
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationPos, setCelebrationPos] = useState({ x: 0, y: 0 })
   const [isAnimating, setIsAnimating] = useState(false)
@@ -52,6 +65,15 @@ export default function TodoItem({ todo, onToggle, onDelete, celebrationEnabled,
               <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
             </svg>
           </div>
+        )}
+
+        {/* Priority Dot */}
+        {!todo.completed && (
+          <button
+            onClick={() => onUpdatePriority(todo.id, PRIORITY_CYCLE[todo.priority])}
+            className={`flex-shrink-0 w-3 h-3 rounded-full ${PRIORITY_COLOR[todo.priority]} hover:opacity-70 transition-opacity`}
+            title={PRIORITY_LABEL[todo.priority]}
+          />
         )}
 
         {/* Checkbox */}

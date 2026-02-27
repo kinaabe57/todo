@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { DatabaseService } from './services/database'
@@ -16,6 +17,32 @@ let db: DatabaseService
 let claude: ClaudeService
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+
+autoUpdater.autoDownload = false
+
+function sendUpdateStatus(event: string, data?: unknown) {
+  mainWindow?.webContents.send('update-status', { event, data })
+}
+
+autoUpdater.on('update-available', (info) => {
+  sendUpdateStatus('available', { version: info.version })
+})
+
+autoUpdater.on('update-not-available', () => {
+  sendUpdateStatus('not-available')
+})
+
+autoUpdater.on('download-progress', (progress) => {
+  sendUpdateStatus('progress', { percent: Math.round(progress.percent) })
+})
+
+autoUpdater.on('update-downloaded', () => {
+  sendUpdateStatus('downloaded')
+})
+
+autoUpdater.on('error', () => {
+  sendUpdateStatus('error')
+})
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -102,6 +129,10 @@ ipcMain.handle('delete-todo', (_event, id: string) => {
   return db.deleteTodo(id)
 })
 
+ipcMain.handle('update-todo-priority', (_event, id: string, priority: string) => {
+  return db.updateTodoPriority(id, priority as 'high' | 'medium' | 'low')
+})
+
 // IPC Handlers for Notes
 ipcMain.handle('get-notes', () => {
   return db.getNotes()
@@ -136,25 +167,24 @@ ipcMain.handle('save-settings', (_event, settings: AppSettings) => {
 
 // IPC Handlers for Updates
 ipcMain.handle('check-for-updates', async () => {
-  try {
-    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
-    if (!response.ok) {
-      return { hasUpdate: false, currentVersion: CURRENT_VERSION }
-    }
-    const release = await response.json()
-    const latestVersion = release.tag_name.replace(/^v/, '')
-    const hasUpdate = latestVersion !== CURRENT_VERSION
-    return {
-      hasUpdate,
-      currentVersion: CURRENT_VERSION,
-      latestVersion,
-      releaseUrl: release.html_url,
-      releaseName: release.name
-    }
-  } catch (error) {
-    console.error('Failed to check for updates:', error)
-    return { hasUpdate: false, currentVersion: CURRENT_VERSION }
+  if (app.isPackaged) {
+    await autoUpdater.checkForUpdates()
+  } else {
+    return { currentVersion: CURRENT_VERSION }
   }
+})
+
+ipcMain.handle('download-update', () => {
+  if (app.isPackaged) {
+    autoUpdater.downloadUpdate()
+  }
+})
+
+ipcMain.handle('install-update', () => {
+  if (process.platform === 'darwin') {
+    shell.openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`)
+  }
+  autoUpdater.quitAndInstall(false, true)
 })
 
 ipcMain.handle('open-release-page', () => {

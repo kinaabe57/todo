@@ -22,6 +22,7 @@ export interface Todo {
   completedAt: string | null;
   createdAt: string;
   source: 'manual' | 'ai';
+  priority: 'high' | 'medium' | 'low';
 }
 
 export interface ChatMessage {

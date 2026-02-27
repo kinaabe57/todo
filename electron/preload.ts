@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addTodo: (projectId: string, text: string, source: 'manual' | 'ai') => ipcRenderer.invoke('add-todo', projectId, text, source),
   toggleTodo: (id: string, completed: boolean) => ipcRenderer.invoke('toggle-todo', id, completed),
   deleteTodo: (id: string) => ipcRenderer.invoke('delete-todo', id),
+  updateTodoPriority: (id: string, priority: string) => ipcRenderer.invoke('update-todo-priority', id, priority),
 
   // Notes
   getNotes: () => ipcRenderer.invoke('get-notes'),
@@ -34,6 +35,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Updates
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
   openReleasePage: () => ipcRenderer.invoke('open-release-page'),
-  getAppVersion: () => ipcRenderer.invoke('get-app-version')
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  onUpdateStatus: (cb: (payload: { event: string; data?: unknown }) => void) =>
+    ipcRenderer.on('update-status', (_e, payload) => cb(payload)),
+  removeUpdateStatusListener: () => ipcRenderer.removeAllListeners('update-status')
 })

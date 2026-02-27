@@ -6,10 +6,9 @@ import { Project, Todo, Note, ChatMessage, AppSettings } from './types'
 
 interface UpdateInfo {
   hasUpdate: boolean
-  currentVersion: string
   latestVersion?: string
-  releaseUrl?: string
-  releaseName?: string
+  phase?: 'available' | 'downloading' | 'downloaded' | 'error'
+  percent?: number
 }
 
 function App() {
@@ -25,17 +24,27 @@ function App() {
 
   useEffect(() => {
     loadData()
-    checkForUpdates()
-  }, [])
-
-  const checkForUpdates = async () => {
-    try {
-      const info = await window.electronAPI.checkForUpdates()
-      setUpdateInfo(info)
-    } catch (error) {
-      console.error('Failed to check for updates:', error)
+    window.electronAPI.checkForUpdates().catch(console.error)
+    window.electronAPI.onUpdateStatus((payload) => {
+      const { event, data } = payload
+      if (event === 'available') {
+        const d = data as { version: string }
+        setUpdateInfo({ hasUpdate: true, latestVersion: d.version, phase: 'available' })
+      } else if (event === 'not-available') {
+        setUpdateInfo({ hasUpdate: false })
+      } else if (event === 'progress') {
+        const d = data as { percent: number }
+        setUpdateInfo(prev => ({ ...prev, hasUpdate: true, phase: 'downloading', percent: d.percent }))
+      } else if (event === 'downloaded') {
+        setUpdateInfo(prev => ({ ...prev, hasUpdate: true, phase: 'downloaded' }))
+      } else if (event === 'error') {
+        setUpdateInfo(prev => ({ hasUpdate: false, ...prev, phase: 'error' }))
+      }
+    })
+    return () => {
+      window.electronAPI.removeUpdateStatusListener()
     }
-  }
+  }, [])
 
   const loadData = async () => {
     try {
@@ -98,6 +107,11 @@ function App() {
   const handleDeleteTodo = async (id: string) => {
     await window.electronAPI.deleteTodo(id)
     setTodos(todos.filter(t => t.id !== id))
+  }
+
+  const handleUpdateTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
+    const updated = await window.electronAPI.updateTodoPriority(id, priority)
+    setTodos(todos.map(t => t.id === id ? updated : t))
   }
 
   const handleAddNote = async (projectId: string, content: string) => {
@@ -173,9 +187,9 @@ function App() {
       <header className="drag-region flex items-center justify-between pl-20 pr-6 py-5 bg-white border-b border-slate-200 shadow-sm">
         <h1 className="text-xl font-semibold text-slate-800">Smart Todo</h1>
         <div className="flex items-center gap-2">
-          {updateInfo?.hasUpdate && (
+          {updateInfo?.hasUpdate && updateInfo.phase === 'available' && (
             <button
-              onClick={() => window.electronAPI.openReleasePage()}
+              onClick={() => window.electronAPI.downloadUpdate()}
               className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"
               title={`Update to ${updateInfo.latestVersion}`}
             >
@@ -183,6 +197,25 @@ function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               Update available
+            </button>
+          )}
+          {updateInfo?.phase === 'downloading' && (
+            <span className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg">
+              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Downloading… {updateInfo.percent ?? 0}%
+            </span>
+          )}
+          {updateInfo?.phase === 'downloaded' && (
+            <button
+              onClick={() => window.electronAPI.installUpdate()}
+              className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Restart to update
             </button>
           )}
           <button
@@ -225,6 +258,7 @@ function App() {
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             onDeleteTodo={handleDeleteTodo}
+            onUpdateTodoPriority={handleUpdateTodoPriority}
             onAddNote={handleAddNote}
             celebrationEnabled={settings.celebrationSoundEnabled}
           />
@@ -237,6 +271,9 @@ function App() {
           settings={settings}
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
+          updateInfo={updateInfo}
+          onDownloadUpdate={() => window.electronAPI.downloadUpdate()}
+          onInstallUpdate={() => window.electronAPI.installUpdate()}
         />
       )}
     </div>

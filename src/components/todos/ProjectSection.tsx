@@ -25,10 +25,11 @@ interface SortableTodoItemProps {
   todo: Todo
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
+  onUpdatePriority: (id: string, priority: 'high' | 'medium' | 'low') => void
   celebrationEnabled: boolean
 }
 
-function SortableTodoItem({ todo, onToggle, onDelete, celebrationEnabled }: SortableTodoItemProps) {
+function SortableTodoItem({ todo, onToggle, onDelete, onUpdatePriority, celebrationEnabled }: SortableTodoItemProps) {
   const {
     attributes,
     listeners,
@@ -51,6 +52,7 @@ function SortableTodoItem({ todo, onToggle, onDelete, celebrationEnabled }: Sort
         todo={todo}
         onToggle={onToggle}
         onDelete={onDelete}
+        onUpdatePriority={onUpdatePriority}
         celebrationEnabled={celebrationEnabled}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
@@ -65,11 +67,14 @@ interface ProjectSectionProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
+  onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
   onReorderTodos?: (projectId: string, todoIds: string[]) => Promise<void>
   celebrationEnabled: boolean
 }
+
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 
 export default function ProjectSection({
   project,
@@ -78,6 +83,7 @@ export default function ProjectSection({
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
+  onUpdateTodoPriority,
   onAddNote,
   onArchiveProject,
   onReorderTodos,
@@ -98,12 +104,12 @@ export default function ProjectSection({
     const hasNewTodos = todos.some(t => !localIds.has(t.id))
     const hasRemovedTodos = localTodos.some(t => !todoIds.has(t.id))
     
-    // Check if completion status changed
+    // Check if completion status or priority changed
     const hasStatusChange = todos.some(t => {
       const local = localTodos.find(lt => lt.id === t.id)
-      return local && local.completed !== t.completed
+      return local && (local.completed !== t.completed || local.priority !== t.priority)
     })
-    
+
     if (hasNewTodos || hasRemovedTodos || hasStatusChange) {
       // Preserve local order for existing todos, add new ones at appropriate positions
       const orderedTodos = localTodos
@@ -127,7 +133,9 @@ export default function ProjectSection({
     })
   )
 
-  const pendingTodos = localTodos.filter(t => !t.completed)
+  const pendingTodos = localTodos
+    .filter(t => !t.completed)
+    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
   const completedTodos = localTodos.filter(t => t.completed)
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -261,6 +269,7 @@ export default function ProjectSection({
                       todo={todo}
                       onToggle={onToggleTodo}
                       onDelete={onDeleteTodo}
+                      onUpdatePriority={onUpdateTodoPriority}
                       celebrationEnabled={celebrationEnabled}
                     />
                   ))}
@@ -295,6 +304,7 @@ export default function ProjectSection({
                       todo={todo}
                       onToggle={onToggleTodo}
                       onDelete={onDeleteTodo}
+                      onUpdatePriority={onUpdateTodoPriority}
                       celebrationEnabled={celebrationEnabled}
                     />
                   ))}
