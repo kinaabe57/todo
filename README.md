@@ -47,6 +47,27 @@ npm run electron:build
 
 The built app will be in the `release` folder.
 
+## Installing from GitHub Releases
+
+### macOS
+
+1. Download the `.dmg` file for your architecture (arm64 for Apple Silicon, x64 for Intel)
+2. Open the `.dmg` and drag Smart Todo to your Applications folder
+3. **Important**: Before opening, run this command in Terminal to remove the quarantine flag:
+
+```bash
+xattr -cr /Applications/Smart\ Todo.app
+```
+
+4. Open Smart Todo from your Applications folder
+
+> **Why is this needed?** macOS blocks apps that aren't signed with an Apple Developer certificate. This is a security feature called Gatekeeper. The command above tells macOS to trust the app.
+
+### Windows
+
+1. Download the `.exe` installer
+2. Run the installer (you may need to click "More info" → "Run anyway" on the SmartScreen prompt)
+
 ## Usage
 
 ### Projects
