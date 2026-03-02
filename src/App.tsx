@@ -114,6 +114,11 @@ function App() {
     setTodos(todos.map(t => t.id === id ? updated : t))
   }
 
+  const handleMoveTodo = async (todoId: string, newProjectId: string) => {
+    const updated = await window.electronAPI.moveTodo(todoId, newProjectId)
+    setTodos(todos.map(t => t.id === todoId ? updated : t))
+  }
+
   const handleAddNote = async (projectId: string, content: string) => {
     const newNote = await window.electronAPI.addNote(projectId, content)
     setNotes([...notes, newNote])
@@ -260,6 +265,7 @@ function App() {
             onDeleteTodo={handleDeleteTodo}
             onUpdateTodoPriority={handleUpdateTodoPriority}
             onAddNote={handleAddNote}
+            onMoveTodo={handleMoveTodo}
             celebrationEnabled={settings.celebrationSoundEnabled}
           />
         </div>

@@ -1,7 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  UniqueIdentifier
+} from '@dnd-kit/core'
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Project, Todo, Note } from '../../types'
 import ProjectSection from './ProjectSection'
 import AddProjectModal from './AddProjectModal'
+
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 
 interface ArchivedProjectCardProps {
   project: Project
@@ -102,6 +116,7 @@ interface TodoPanelProps {
   onDeleteTodo: (id: string) => Promise<void>
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string, content: string) => Promise<Note>
+  onMoveTodo: (todoId: string, newProjectId: string) => Promise<void>
   celebrationEnabled: boolean
 }
 
@@ -118,10 +133,96 @@ export default function TodoPanel({
   onDeleteTodo,
   onUpdateTodoPriority,
   onAddNote,
+  onMoveTodo,
   celebrationEnabled
 }: TodoPanelProps) {
   const [showAddProject, setShowAddProject] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
+  const [localTodos, setLocalTodos] = useState<Todo[]>(todos)
+
+  // Sync localTodos with todos prop (new todos, deletions, status/priority/project changes)
+  useEffect(() => {
+    const todoMap = new Map(todos.map(t => [t.id, t]))
+    const localMap = new Map(localTodos.map(t => [t.id, t]))
+
+    const hasNewTodos = todos.some(t => !localMap.has(t.id))
+    const hasRemovedTodos = localTodos.some(t => !todoMap.has(t.id))
+    const hasChanges = todos.some(t => {
+      const local = localMap.get(t.id)
+      return local && (
+        local.completed !== t.completed ||
+        local.priority !== t.priority ||
+        local.projectId !== t.projectId
+      )
+    })
+
+    if (hasNewTodos || hasRemovedTodos || hasChanges) {
+      const preserved = localTodos
+        .filter(lt => todoMap.has(lt.id))
+        .map(lt => todoMap.get(lt.id)!)
+      const newTodos = todos.filter(t => !localMap.has(t.id))
+      setLocalTodos([...newTodos, ...preserved])
+    }
+  }, [todos])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  )
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    setActiveId(active.id)
+  }
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    setActiveId(null)
+    if (!over || active.id === over.id) return
+
+    const activeTodoId = String(active.id)
+    const activeTodo = localTodos.find(t => t.id === activeTodoId)
+    if (!activeTodo) return
+
+    const overId = String(over.id)
+
+    // Determine target project
+    let targetProjectId: string
+    if (overId.startsWith('project-')) {
+      targetProjectId = overId.slice('project-'.length)
+    } else {
+      const overTodo = localTodos.find(t => t.id === overId)
+      if (!overTodo) return
+      targetProjectId = overTodo.projectId
+    }
+
+    if (targetProjectId !== activeTodo.projectId) {
+      // Cross-project move: optimistically update then persist
+      setLocalTodos(prev =>
+        prev.map(t => t.id === activeTodoId ? { ...t, projectId: targetProjectId } : t)
+      )
+      await onMoveTodo(activeTodoId, targetProjectId)
+    } else if (!overId.startsWith('project-')) {
+      // Intra-project reorder among pending todos (priority-sorted order)
+      const projectPendingTodos = localTodos
+        .filter(t => t.projectId === targetProjectId && !t.completed)
+        .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+
+      const oldIndex = projectPendingTodos.findIndex(t => t.id === activeTodoId)
+      const newIndex = projectPendingTodos.findIndex(t => t.id === overId)
+
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const reordered = arrayMove(projectPendingTodos, oldIndex, newIndex)
+        setLocalTodos(prev => {
+          const others = prev.filter(t => t.projectId !== targetProjectId || t.completed)
+          return [...others, ...reordered]
+        })
+      }
+    }
+  }
 
   const handleAddProject = async (name: string, description: string) => {
     await onAddProject(name, description)
@@ -162,21 +263,29 @@ export default function TodoPanel({
             </div>
           </div>
         ) : (
-          projects.map(project => (
-            <ProjectSection
-              key={project.id}
-              project={project}
-              todos={todos.filter(t => t.projectId === project.id)}
-              notes={notes.filter(n => n.projectId === project.id)}
-              onAddTodo={onAddTodo}
-              onToggleTodo={onToggleTodo}
-              onDeleteTodo={onDeleteTodo}
-              onUpdateTodoPriority={onUpdateTodoPriority}
-              onAddNote={onAddNote}
-              onArchiveProject={onArchiveProject}
-              celebrationEnabled={celebrationEnabled}
-            />
-          ))
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            {projects.map(project => (
+              <ProjectSection
+                key={project.id}
+                project={project}
+                todos={localTodos.filter(t => t.projectId === project.id)}
+                notes={notes.filter(n => n.projectId === project.id)}
+                onAddTodo={onAddTodo}
+                onToggleTodo={onToggleTodo}
+                onDeleteTodo={onDeleteTodo}
+                onUpdateTodoPriority={onUpdateTodoPriority}
+                onAddNote={onAddNote}
+                onArchiveProject={onArchiveProject}
+                celebrationEnabled={celebrationEnabled}
+                activeId={activeId}
+              />
+            ))}
+          </DndContext>
         )}
 
         {/* Archived Projects Section */}

@@ -245,6 +245,24 @@ export class DatabaseService {
     }
   }
 
+  moveTodo(id: string, newProjectId: string): Todo {
+    this.db.prepare('UPDATE todos SET projectId = ? WHERE id = ?').run(newProjectId, id)
+    const row = this.db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as {
+      id: string
+      projectId: string
+      text: string
+      completed: number
+      completedAt: string | null
+      createdAt: string
+      source: 'manual' | 'ai'
+      priority: 'high' | 'medium' | 'low'
+    }
+    return {
+      ...row,
+      completed: Boolean(row.completed)
+    }
+  }
+
   deleteTodo(id: string): void {
     const stmt = this.db.prepare('DELETE FROM todos WHERE id = ?')
     stmt.run(id)

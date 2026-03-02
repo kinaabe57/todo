@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleTodo: (id: string, completed: boolean) => ipcRenderer.invoke('toggle-todo', id, completed),
   deleteTodo: (id: string) => ipcRenderer.invoke('delete-todo', id),
   updateTodoPriority: (id: string, priority: string) => ipcRenderer.invoke('update-todo-priority', id, priority),
+  moveTodo: (id: string, newProjectId: string) => ipcRenderer.invoke('move-todo', id, newProjectId),
 
   // Notes
   getNotes: () => ipcRenderer.invoke('get-notes'),

@@ -1,25 +1,28 @@
 import { useState, useEffect } from 'react'
 import { AppSettings } from '../../types'
 
+interface UpdateInfo {
+  hasUpdate: boolean
+  latestVersion?: string
+  phase?: 'available' | 'downloading' | 'downloaded' | 'error'
+  percent?: number
+}
+
 interface SettingsModalProps {
   settings: AppSettings
   onSave: (settings: AppSettings) => Promise<void>
   onClose: () => void
+  updateInfo: UpdateInfo | null
+  onDownloadUpdate: () => void
+  onInstallUpdate: () => void
 }
 
-interface UpdateInfo {
-  hasUpdate: boolean
-  currentVersion: string
-  latestVersion?: string
-}
-
-export default function SettingsModal({ settings, onSave, onClose }: SettingsModalProps) {
+export default function SettingsModal({ settings, onSave, onClose, updateInfo, onDownloadUpdate, onInstallUpdate }: SettingsModalProps) {
   const [apiKey, setApiKey] = useState(settings.apiKey)
   const [celebrationSound, setCelebrationSound] = useState(settings.celebrationSoundEnabled)
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [appVersion, setAppVersion] = useState('')
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
 
   useEffect(() => {
@@ -29,8 +32,7 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
   const handleCheckUpdate = async () => {
     setIsCheckingUpdate(true)
     try {
-      const info = await window.electronAPI.checkForUpdates()
-      setUpdateInfo(info)
+      await window.electronAPI.checkForUpdates()
     } finally {
       setIsCheckingUpdate(false)
     }
@@ -63,7 +65,7 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
             </svg>
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* API Key Section */}
           <div>
@@ -72,9 +74,9 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
             </label>
             <p className="text-xs text-slate-500 mb-2">
               Required to chat with Claude. Get your key from{' '}
-              <a 
-                href="https://console.anthropic.com/account/keys" 
-                target="_blank" 
+              <a
+                href="https://console.anthropic.com/account/keys"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary-500 hover:text-primary-600"
               >
@@ -140,29 +142,43 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
               <button
                 type="button"
                 onClick={handleCheckUpdate}
-                disabled={isCheckingUpdate}
+                disabled={isCheckingUpdate || updateInfo?.phase === 'downloading'}
                 className="text-xs text-primary-600 hover:text-primary-700 disabled:text-slate-400"
               >
                 {isCheckingUpdate ? 'Checking...' : 'Check for updates'}
               </button>
-              {updateInfo && (
-                <span className="text-xs text-slate-500">
-                  {updateInfo.hasUpdate ? (
-                    <button
-                      type="button"
-                      onClick={() => window.electronAPI.openReleasePage()}
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      v{updateInfo.latestVersion} available - Download
-                    </button>
-                  ) : (
-                    <span className="text-slate-400">You're up to date!</span>
-                  )}
+              {updateInfo?.phase === 'available' && (
+                <button
+                  type="button"
+                  onClick={onDownloadUpdate}
+                  className="text-xs text-green-600 hover:text-green-700"
+                >
+                  v{updateInfo.latestVersion} available — Download
+                </button>
+              )}
+              {updateInfo?.phase === 'downloading' && (
+                <span className="text-xs text-blue-600">
+                  Downloading… {updateInfo.percent ?? 0}%
                 </span>
+              )}
+              {updateInfo?.phase === 'downloaded' && (
+                <button
+                  type="button"
+                  onClick={onInstallUpdate}
+                  className="text-xs text-green-600 hover:text-green-700 font-medium"
+                >
+                  Restart to update
+                </button>
+              )}
+              {updateInfo?.phase === 'error' && (
+                <span className="text-xs text-red-500">Update failed</span>
+              )}
+              {updateInfo && !updateInfo.hasUpdate && updateInfo.phase !== 'error' && (
+                <span className="text-xs text-slate-400">You're up to date!</span>
               )}
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"

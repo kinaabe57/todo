@@ -134,6 +134,10 @@ ipcMain.handle('update-todo-priority', (_event, id: string, priority: string) =>
   return db.updateTodoPriority(id, priority as 'high' | 'medium' | 'low')
 })
 
+ipcMain.handle('move-todo', (_event, id: string, newProjectId: string) => {
+  return db.moveTodo(id, newProjectId)
+})
+
 // IPC Handlers for Notes
 ipcMain.handle('get-notes', () => {
   return db.getNotes()

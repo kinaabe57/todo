@@ -20,6 +20,7 @@ interface ElectronAPI {
   toggleTodo: (id: string, completed: boolean) => Promise<Todo>;
   deleteTodo: (id: string) => Promise<void>;
   updateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<Todo>;
+  moveTodo: (id: string, newProjectId: string) => Promise<Todo>;
   
   getNotes: () => Promise<Note[]>;
   addNote: (projectId: string, content: string) => Promise<Note>;

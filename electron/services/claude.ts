@@ -66,12 +66,21 @@ YOUR CAPABILITIES:
 4. Provide encouragement and support
 
 WHEN SUGGESTING TODOS:
-- Make them specific and actionable
-- Consider the project context and recent progress
+- Keep each todo SHORT and CONCISE
+- Each todo must be a SINGLE atomic action - never combine multiple tasks
+- If a task has multiple parts, split them into SEPARATE todos
+- Do NOT use "and" or commas to list multiple actions in one todo
+- Focus on the essence of what needs to be done
 - Format each suggestion on a new line starting with "• "
-- If a suggestion is for a specific project, mention the project name
+- If a suggestion is for a specific project, prefix with **ProjectName**:
 
-IMPORTANT: When you suggest todos, format them clearly so the user can easily add them to their list. Be concise but helpful.`
+BAD example: "• Research technical requirements, user interface design, and account switching"
+GOOD example:
+• Research technical requirements
+• Design user interface mockups
+• Implement account switching
+
+IMPORTANT: Quality over quantity. Each todo should be immediately actionable as a single task.`
   }
 
   async sendMessage(
@@ -115,7 +124,7 @@ IMPORTANT: When you suggest todos, format them clearly so the user can easily ad
     if (!bulletPoints) return todos
 
     for (const point of bulletPoints) {
-      const text = point.replace(/^[•\-\*]\s+/, '').trim()
+      let text = point.replace(/^[•\-\*]\s+/, '').trim()
       
       if (text.length < 5 || text.length > 200) continue
       if (text.toLowerCase().includes('here are') || text.toLowerCase().includes('i suggest')) continue
@@ -124,6 +133,9 @@ IMPORTANT: When you suggest todos, format them clearly so the user can easily ad
       for (const project of projects) {
         if (text.toLowerCase().includes(project.name.toLowerCase())) {
           projectId = project.id
+          // Remove project header prefix like "**ProjectName**:" from the beginning of the text
+          const headerPattern = new RegExp(`^\\*\\*${project.name}\\*\\*:?\\s*`, 'i')
+          text = text.replace(headerPattern, '').trim()
           break
         }
       }

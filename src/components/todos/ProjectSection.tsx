@@ -1,20 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
+import { useDroppable, UniqueIdentifier } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Project, Todo, Note } from '../../types'
 import TodoItem from './TodoItem'
@@ -70,8 +60,8 @@ interface ProjectSectionProps {
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
-  onReorderTodos?: (projectId: string, todoIds: string[]) => Promise<void>
   celebrationEnabled: boolean
+  activeId?: UniqueIdentifier | null
 }
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
@@ -86,74 +76,26 @@ export default function ProjectSection({
   onUpdateTodoPriority,
   onAddNote,
   onArchiveProject,
-  onReorderTodos,
-  celebrationEnabled
+  celebrationEnabled,
+  activeId
 }: ProjectSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showCompleted, setShowCompleted] = useState(false)
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  const [localTodos, setLocalTodos] = useState<Todo[]>(todos)
 
-  // Update local todos when props change (new todos added or completed status changes)
-  useEffect(() => {
-    const todoIds = new Set(todos.map(t => t.id))
-    const localIds = new Set(localTodos.map(t => t.id))
-    
-    // Check if todos were added or removed
-    const hasNewTodos = todos.some(t => !localIds.has(t.id))
-    const hasRemovedTodos = localTodos.some(t => !todoIds.has(t.id))
-    
-    // Check if completion status or priority changed
-    const hasStatusChange = todos.some(t => {
-      const local = localTodos.find(lt => lt.id === t.id)
-      return local && (local.completed !== t.completed || local.priority !== t.priority)
-    })
+  const { setNodeRef, isOver } = useDroppable({
+    id: `project-${project.id}`,
+    data: { projectId: project.id }
+  })
 
-    if (hasNewTodos || hasRemovedTodos || hasStatusChange) {
-      // Preserve local order for existing todos, add new ones at appropriate positions
-      const orderedTodos = localTodos
-        .filter(lt => todoIds.has(lt.id))
-        .map(lt => todos.find(t => t.id === lt.id)!)
-      
-      // Add any new todos
-      const newTodos = todos.filter(t => !localIds.has(t.id))
-      setLocalTodos([...newTodos, ...orderedTodos])
-    }
-  }, [todos])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8
-      }
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates
-    })
-  )
-
-  const pendingTodos = localTodos
+  const pendingTodos = todos
     .filter(t => !t.completed)
     .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
-  const completedTodos = localTodos.filter(t => t.completed)
+  const completedTodos = todos.filter(t => t.completed)
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = pendingTodos.findIndex(t => t.id === active.id)
-      const newIndex = pendingTodos.findIndex(t => t.id === over.id)
-      
-      const newPendingOrder = arrayMove(pendingTodos, oldIndex, newIndex)
-      const newTodos = [...newPendingOrder, ...completedTodos]
-      setLocalTodos(newTodos)
-      
-      if (onReorderTodos) {
-        await onReorderTodos(project.id, newTodos.map(t => t.id))
-      }
-    }
-  }
+  // Show drop highlight only when dragging a todo from a different project
+  const isDroppingFromOther = isOver && activeId && !todos.some(t => t.id === activeId)
 
   const handleAddNote = async (content: string) => {
     await onAddNote(project.id, content)
@@ -161,7 +103,14 @@ export default function ProjectSection({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div
+      ref={setNodeRef}
+      className={`rounded-xl shadow-sm border overflow-hidden transition-colors ${
+        isDroppingFromOther
+          ? 'bg-primary-50 border-primary-400 shadow-md'
+          : 'bg-white border-slate-200'
+      }`}
+    >
       {/* Project Header */}
       <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
         <div className="flex items-center justify-between">
@@ -183,7 +132,7 @@ export default function ProjectSection({
               ({pendingTodos.length} pending)
             </span>
           </button>
-          
+
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
@@ -193,7 +142,7 @@ export default function ProjectSection({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
             </button>
-            
+
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
@@ -229,11 +178,11 @@ export default function ProjectSection({
             )}
           </div>
         </div>
-        
+
         {project.description && (
           <p className="text-sm text-slate-500 mt-1 ml-8">{project.description}</p>
         )}
-        
+
         {notes.length > 0 && (
           <div className="mt-2 ml-8">
             <p className="text-xs text-slate-400 mb-1">{notes.length} note(s)</p>
@@ -251,30 +200,24 @@ export default function ProjectSection({
           <div className="mt-3 space-y-1">
             {pendingTodos.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-4">
-                No pending todos. Add one above!
+                {isDroppingFromOther ? 'Drop here to move to this project' : 'No pending todos. Add one above!'}
               </p>
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
+              <SortableContext
+                items={pendingTodos.map(t => t.id)}
+                strategy={verticalListSortingStrategy}
               >
-                <SortableContext
-                  items={pendingTodos.map(t => t.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {pendingTodos.map(todo => (
-                    <SortableTodoItem
-                      key={todo.id}
-                      todo={todo}
-                      onToggle={onToggleTodo}
-                      onDelete={onDeleteTodo}
-                      onUpdatePriority={onUpdateTodoPriority}
-                      celebrationEnabled={celebrationEnabled}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
+                {pendingTodos.map(todo => (
+                  <SortableTodoItem
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={onToggleTodo}
+                    onDelete={onDeleteTodo}
+                    onUpdatePriority={onUpdateTodoPriority}
+                    celebrationEnabled={celebrationEnabled}
+                  />
+                ))}
+              </SortableContext>
             )}
           </div>
 
