@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   archiveProject: (id: string) => ipcRenderer.invoke('archive-project', id),
   restoreProject: (id: string) => ipcRenderer.invoke('restore-project', id),
   deleteProject: (id: string) => ipcRenderer.invoke('delete-project', id),
+  reorderProjects: (orderedIds: string[]) => ipcRenderer.invoke('reorder-projects', orderedIds),
 
   // Todos
   getTodos: () => ipcRenderer.invoke('get-todos'),
@@ -17,6 +18,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteTodo: (id: string) => ipcRenderer.invoke('delete-todo', id),
   updateTodoPriority: (id: string, priority: string) => ipcRenderer.invoke('update-todo-priority', id, priority),
   moveTodo: (id: string, newProjectId: string) => ipcRenderer.invoke('move-todo', id, newProjectId),
+
+  // Subtasks
+  getAllSubtasks: () => ipcRenderer.invoke('get-all-subtasks'),
+  addSubtask: (todoId: string, text: string) => ipcRenderer.invoke('add-subtask', todoId, text),
+  toggleSubtask: (id: string, completed: boolean) => ipcRenderer.invoke('toggle-subtask', id, completed),
+  deleteSubtask: (id: string) => ipcRenderer.invoke('delete-subtask', id),
+  completeAllSubtasks: (todoId: string) => ipcRenderer.invoke('complete-all-subtasks', todoId),
 
   // Notes
   getNotes: () => ipcRenderer.invoke('get-notes'),

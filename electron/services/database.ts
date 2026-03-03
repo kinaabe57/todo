@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import { v4 as uuidv4 } from 'uuid'
-import { Project, Todo, Note, ChatMessage, AppSettings } from '../../src/types'
+import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from '../../src/types'
 
 export class DatabaseService {
   private db: Database.Database
@@ -53,6 +53,16 @@ export class DatabaseService {
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS subtasks (
+        id TEXT PRIMARY KEY,
+        todoId TEXT NOT NULL,
+        text TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        completedAt TEXT,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (todoId) REFERENCES todos(id) ON DELETE CASCADE
+      );
     `)
     
     this.runMigrations()
@@ -72,11 +82,20 @@ export class DatabaseService {
     try {
       this.db.exec(`ALTER TABLE todos ADD COLUMN priority TEXT DEFAULT 'medium'`)
     } catch { /* column already exists */ }
+
+    try {
+      this.db.exec(`ALTER TABLE projects ADD COLUMN position INTEGER DEFAULT 0`)
+      // Set initial positions based on createdAt order
+      const rows = this.db.prepare('SELECT id FROM projects ORDER BY createdAt ASC').all() as { id: string }[]
+      rows.forEach((row, i) => {
+        this.db.prepare('UPDATE projects SET position = ? WHERE id = ?').run(i, row.id)
+      })
+    } catch { /* column already exists */ }
   }
 
   // Projects
   getProjects(): Project[] {
-    const stmt = this.db.prepare('SELECT * FROM projects WHERE archived = 0 ORDER BY createdAt DESC')
+    const stmt = this.db.prepare('SELECT * FROM projects WHERE archived = 0 ORDER BY position ASC, createdAt DESC')
     const rows = stmt.all() as Array<{
       id: string
       name: string
@@ -108,6 +127,7 @@ export class DatabaseService {
   }
 
   addProject(name: string, description: string): Project {
+    const { pos } = this.db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM projects WHERE archived = 0').get() as { pos: number }
     const project: Project = {
       id: uuidv4(),
       name,
@@ -116,9 +136,14 @@ export class DatabaseService {
       archived: false,
       archivedAt: null
     }
-    const stmt = this.db.prepare('INSERT INTO projects (id, name, description, createdAt, archived, archivedAt) VALUES (?, ?, ?, ?, ?, ?)')
-    stmt.run(project.id, project.name, project.description, project.createdAt, 0, null)
+    const stmt = this.db.prepare('INSERT INTO projects (id, name, description, createdAt, archived, archivedAt, position) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    stmt.run(project.id, project.name, project.description, project.createdAt, 0, null, pos)
     return project
+  }
+
+  reorderProjects(orderedIds: string[]): void {
+    const stmt = this.db.prepare('UPDATE projects SET position = ? WHERE id = ?')
+    orderedIds.forEach((id, index) => stmt.run(index, id))
   }
 
   archiveProject(id: string): Project {
@@ -266,6 +291,54 @@ export class DatabaseService {
   deleteTodo(id: string): void {
     const stmt = this.db.prepare('DELETE FROM todos WHERE id = ?')
     stmt.run(id)
+  }
+
+  // Subtasks
+  addSubtask(todoId: string, text: string): Subtask {
+    const subtask: Subtask = {
+      id: uuidv4(),
+      todoId,
+      text,
+      completed: false,
+      completedAt: null,
+      createdAt: new Date().toISOString()
+    }
+    this.db.prepare('INSERT INTO subtasks (id, todoId, text, completed, completedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?)').run(
+      subtask.id, subtask.todoId, subtask.text, 0, null, subtask.createdAt
+    )
+    return subtask
+  }
+
+  getSubtasksForTodo(todoId: string): Subtask[] {
+    const rows = this.db.prepare('SELECT * FROM subtasks WHERE todoId = ? ORDER BY createdAt ASC').all(todoId) as Array<{
+      id: string; todoId: string; text: string; completed: number; completedAt: string | null; createdAt: string
+    }>
+    return rows.map(r => ({ ...r, completed: Boolean(r.completed) }))
+  }
+
+  getAllSubtasks(): Subtask[] {
+    const rows = this.db.prepare('SELECT * FROM subtasks ORDER BY createdAt ASC').all() as Array<{
+      id: string; todoId: string; text: string; completed: number; completedAt: string | null; createdAt: string
+    }>
+    return rows.map(r => ({ ...r, completed: Boolean(r.completed) }))
+  }
+
+  toggleSubtask(id: string, completed: boolean): Subtask {
+    const completedAt = completed ? new Date().toISOString() : null
+    this.db.prepare('UPDATE subtasks SET completed = ?, completedAt = ? WHERE id = ?').run(completed ? 1 : 0, completedAt, id)
+    const row = this.db.prepare('SELECT * FROM subtasks WHERE id = ?').get(id) as {
+      id: string; todoId: string; text: string; completed: number; completedAt: string | null; createdAt: string
+    }
+    return { ...row, completed: Boolean(row.completed) }
+  }
+
+  deleteSubtask(id: string): void {
+    this.db.prepare('DELETE FROM subtasks WHERE id = ?').run(id)
+  }
+
+  completeAllSubtasks(todoId: string): void {
+    const completedAt = new Date().toISOString()
+    this.db.prepare('UPDATE subtasks SET completed = 1, completedAt = ? WHERE todoId = ? AND completed = 0').run(completedAt, todoId)
   }
 
   // Notes

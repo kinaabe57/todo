@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { Project, Todo, Note, ChatMessage, AppSettings } from './types'
+import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from './types'
 
 interface ClaudeResponse {
   content: string;
@@ -14,7 +14,8 @@ interface ElectronAPI {
   archiveProject: (id: string) => Promise<Project>;
   restoreProject: (id: string) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
-  
+  reorderProjects: (orderedIds: string[]) => Promise<void>;
+
   getTodos: () => Promise<Todo[]>;
   addTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<Todo>;
   toggleTodo: (id: string, completed: boolean) => Promise<Todo>;
@@ -22,6 +23,12 @@ interface ElectronAPI {
   updateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<Todo>;
   moveTodo: (id: string, newProjectId: string) => Promise<Todo>;
   
+  getAllSubtasks: () => Promise<Subtask[]>;
+  addSubtask: (todoId: string, text: string) => Promise<Subtask>;
+  toggleSubtask: (id: string, completed: boolean) => Promise<Subtask>;
+  deleteSubtask: (id: string) => Promise<void>;
+  completeAllSubtasks: (todoId: string) => Promise<void>;
+
   getNotes: () => Promise<Note[]>;
   addNote: (projectId: string, content: string) => Promise<Note>;
   

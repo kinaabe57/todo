@@ -31,10 +31,7 @@ export default function ChatPanel({
     }
   }
 
-  const handleAddSuggestedTodo = async (messageId: string, todoIndex: number, text: string, projectId?: string) => {
-    if (!projectId && projects.length > 0) {
-      projectId = projects[0].id
-    }
+  const handleAddSuggestedTodo = async (messageId: string, todoIndex: number, text: string, projectId: string) => {
     if (projectId) {
       await onAddTodo(projectId, text, 'ai')
       onMarkTodoAdded(messageId, todoIndex)

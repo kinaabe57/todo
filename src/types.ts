@@ -14,6 +14,15 @@ export interface Note {
   createdAt: string;
 }
 
+export interface Subtask {
+  id: string;
+  todoId: string;
+  text: string;
+  completed: boolean;
+  completedAt: string | null;
+  createdAt: string;
+}
+
 export interface Todo {
   id: string;
   projectId: string;
@@ -23,6 +32,7 @@ export interface Todo {
   createdAt: string;
   source: 'manual' | 'ai';
   priority: 'high' | 'medium' | 'low';
+  subtasks?: Subtask[];
 }
 
 export interface ChatMessage {

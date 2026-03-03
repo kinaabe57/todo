@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import ChatPanel from './components/chat/ChatPanel'
 import TodoPanel from './components/todos/TodoPanel'
 import SettingsModal from './components/shared/SettingsModal'
-import { Project, Todo, Note, ChatMessage, AppSettings } from './types'
+import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from './types'
 
 interface UpdateInfo {
   hasUpdate: boolean
@@ -15,6 +15,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([])
   const [archivedProjects, setArchivedProjects] = useState<Project[]>([])
   const [todos, setTodos] = useState<Todo[]>([])
+  const [subtasks, setSubtasks] = useState<Subtask[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [settings, setSettings] = useState<AppSettings>({ apiKey: '', celebrationSoundEnabled: true })
@@ -48,10 +49,11 @@ function App() {
 
   const loadData = async () => {
     try {
-      const [projectsData, archivedProjectsData, todosData, notesData, messagesData, settingsData] = await Promise.all([
+      const [projectsData, archivedProjectsData, todosData, subtasksData, notesData, messagesData, settingsData] = await Promise.all([
         window.electronAPI.getProjects(),
         window.electronAPI.getArchivedProjects(),
         window.electronAPI.getTodos(),
+        window.electronAPI.getAllSubtasks(),
         window.electronAPI.getNotes(),
         window.electronAPI.getMessages(),
         window.electronAPI.getSettings()
@@ -59,6 +61,7 @@ function App() {
       setProjects(projectsData)
       setArchivedProjects(archivedProjectsData)
       setTodos(todosData)
+      setSubtasks(subtasksData)
       setNotes(notesData)
       setMessages(messagesData)
       if (settingsData) {
@@ -75,6 +78,10 @@ function App() {
     const newProject = await window.electronAPI.addProject(name, description)
     setProjects([...projects, newProject])
     return newProject
+  }
+
+  const handleReorderProjects = async (orderedIds: string[]) => {
+    await window.electronAPI.reorderProjects(orderedIds)
   }
 
   const handleArchiveProject = async (id: string) => {
@@ -98,10 +105,39 @@ function App() {
   const handleToggleTodo = async (id: string) => {
     const todo = todos.find(t => t.id === id)
     if (!todo) return
-    
-    const updatedTodo = await window.electronAPI.toggleTodo(id, !todo.completed)
+
+    const completing = !todo.completed
+    const updatedTodo = await window.electronAPI.toggleTodo(id, completing)
     setTodos(todos.map(t => t.id === id ? updatedTodo : t))
+
+    if (completing) {
+      await window.electronAPI.completeAllSubtasks(id)
+      const completedAt = new Date().toISOString()
+      setSubtasks(prev => prev.map(s =>
+        s.todoId === id && !s.completed ? { ...s, completed: true, completedAt } : s
+      ))
+    }
+
     return updatedTodo
+  }
+
+  const handleAddSubtask = async (todoId: string, text: string) => {
+    const newSubtask = await window.electronAPI.addSubtask(todoId, text)
+    setSubtasks(prev => [...prev, newSubtask])
+    return newSubtask
+  }
+
+  const handleToggleSubtask = async (id: string) => {
+    const subtask = subtasks.find(s => s.id === id)
+    if (!subtask) return
+    const updated = await window.electronAPI.toggleSubtask(id, !subtask.completed)
+    setSubtasks(prev => prev.map(s => s.id === id ? updated : s))
+    return updated
+  }
+
+  const handleDeleteSubtask = async (id: string) => {
+    await window.electronAPI.deleteSubtask(id)
+    setSubtasks(prev => prev.filter(s => s.id !== id))
   }
 
   const handleDeleteTodo = async (id: string) => {
@@ -189,8 +225,8 @@ function App() {
   return (
     <div className="flex flex-col h-screen bg-slate-50">
       {/* Header - draggable title bar */}
-      <header className="drag-region flex items-center justify-between pl-20 pr-6 py-5 bg-white border-b border-slate-200 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-800">Smart Todo</h1>
+      <header className="drag-region flex items-center justify-between pl-20 pr-6 py-2 bg-white border-b border-slate-200 shadow-sm">
+        <h1 className="text-base font-semibold text-slate-800">Smart Todo</h1>
         <div className="flex items-center gap-2">
           {updateInfo?.hasUpdate && updateInfo.phase === 'available' && (
             <button
@@ -268,6 +304,7 @@ function App() {
             projects={projects}
             archivedProjects={archivedProjects}
             todos={todos}
+            subtasks={subtasks}
             notes={notes}
             onAddProject={handleAddProject}
             onArchiveProject={handleArchiveProject}
@@ -278,6 +315,10 @@ function App() {
             onUpdateTodoPriority={handleUpdateTodoPriority}
             onAddNote={handleAddNote}
             onMoveTodo={handleMoveTodo}
+            onAddSubtask={handleAddSubtask}
+            onToggleSubtask={handleToggleSubtask}
+            onDeleteSubtask={handleDeleteSubtask}
+            onReorderProjects={handleReorderProjects}
             celebrationEnabled={settings.celebrationSoundEnabled}
           />
         </div>

@@ -113,6 +113,10 @@ ipcMain.handle('delete-project', (_event, id: string) => {
   return db.deleteProject(id)
 })
 
+ipcMain.handle('reorder-projects', (_event, orderedIds: string[]) => {
+  return db.reorderProjects(orderedIds)
+})
+
 // IPC Handlers for Todos
 ipcMain.handle('get-todos', () => {
   return db.getTodos()
@@ -136,6 +140,27 @@ ipcMain.handle('update-todo-priority', (_event, id: string, priority: string) =>
 
 ipcMain.handle('move-todo', (_event, id: string, newProjectId: string) => {
   return db.moveTodo(id, newProjectId)
+})
+
+// IPC Handlers for Subtasks
+ipcMain.handle('get-all-subtasks', () => {
+  return db.getAllSubtasks()
+})
+
+ipcMain.handle('add-subtask', (_event, todoId: string, text: string) => {
+  return db.addSubtask(todoId, text)
+})
+
+ipcMain.handle('toggle-subtask', (_event, id: string, completed: boolean) => {
+  return db.toggleSubtask(id, completed)
+})
+
+ipcMain.handle('delete-subtask', (_event, id: string) => {
+  return db.deleteSubtask(id)
+})
+
+ipcMain.handle('complete-all-subtasks', (_event, todoId: string) => {
+  return db.completeAllSubtasks(todoId)
 })
 
 // IPC Handlers for Notes

@@ -6,20 +6,24 @@ import {
 } from '@dnd-kit/sortable'
 import { useDroppable, UniqueIdentifier } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Project, Todo, Note } from '../../types'
+import { Project, Todo, Note, Subtask } from '../../types'
 import TodoItem from './TodoItem'
 import AddTodoInput from './AddTodoInput'
 import AddNoteModal from './AddNoteModal'
 
 interface SortableTodoItemProps {
   todo: Todo
+  subtasks: Subtask[]
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
   onUpdatePriority: (id: string, priority: 'high' | 'medium' | 'low') => void
   celebrationEnabled: boolean
+  onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
+  onToggleSubtask: (id: string) => Promise<Subtask | undefined>
+  onDeleteSubtask: (id: string) => Promise<void>
 }
 
-function SortableTodoItem({ todo, onToggle, onDelete, onUpdatePriority, celebrationEnabled }: SortableTodoItemProps) {
+function SortableTodoItem({ todo, subtasks, onToggle, onDelete, onUpdatePriority, celebrationEnabled, onAddSubtask, onToggleSubtask, onDeleteSubtask }: SortableTodoItemProps) {
   const {
     attributes,
     listeners,
@@ -40,11 +44,15 @@ function SortableTodoItem({ todo, onToggle, onDelete, onUpdatePriority, celebrat
     <div ref={setNodeRef} style={style}>
       <TodoItem
         todo={todo}
+        subtasks={subtasks}
         onToggle={onToggle}
         onDelete={onDelete}
         onUpdatePriority={onUpdatePriority}
         celebrationEnabled={celebrationEnabled}
         dragHandleProps={{ ...attributes, ...listeners }}
+        onAddSubtask={onAddSubtask}
+        onToggleSubtask={onToggleSubtask}
+        onDeleteSubtask={onDeleteSubtask}
       />
     </div>
   )
@@ -53,6 +61,7 @@ function SortableTodoItem({ todo, onToggle, onDelete, onUpdatePriority, celebrat
 interface ProjectSectionProps {
   project: Project
   todos: Todo[]
+  subtasks: Subtask[]
   notes: Note[]
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
@@ -60,8 +69,13 @@ interface ProjectSectionProps {
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
+  onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
+  onToggleSubtask: (id: string) => Promise<Subtask | undefined>
+  onDeleteSubtask: (id: string) => Promise<void>
   celebrationEnabled: boolean
   activeId?: UniqueIdentifier | null
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
+  isDraggingProject?: boolean
 }
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
@@ -69,6 +83,7 @@ const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 export default function ProjectSection({
   project,
   todos,
+  subtasks,
   notes,
   onAddTodo,
   onToggleTodo,
@@ -76,8 +91,13 @@ export default function ProjectSection({
   onUpdateTodoPriority,
   onAddNote,
   onArchiveProject,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
   celebrationEnabled,
-  activeId
+  activeId,
+  dragHandleProps,
+  isDraggingProject
 }: ProjectSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -94,8 +114,8 @@ export default function ProjectSection({
     .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
   const completedTodos = todos.filter(t => t.completed)
 
-  // Show drop highlight only when dragging a todo from a different project
-  const isDroppingFromOther = isOver && activeId && !todos.some(t => t.id === activeId)
+  // Show drop highlight only when dragging a todo from a different project (not a project card)
+  const isDroppingFromOther = isOver && activeId && !todos.some(t => t.id === activeId) && !isDraggingProject
 
   const handleAddNote = async (content: string) => {
     await onAddNote(project.id, content)
@@ -112,33 +132,42 @@ export default function ProjectSection({
       }`}
     >
       {/* Project Header */}
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200">
         <div className="flex items-center justify-between">
+          {dragHandleProps && (
+            <div
+              {...dragHandleProps}
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 touch-none mr-1"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+              </svg>
+            </div>
+          )}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-left flex-1"
+            className="flex items-center gap-1.5 text-left flex-1"
           >
             <svg
-              className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              className={`w-3 h-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <span className="text-lg">📁</span>
-            <span className="font-medium text-slate-800">{project.name}</span>
-            <span className="text-sm text-slate-500">
-              ({pendingTodos.length} pending)
+            <span className="text-sm font-medium text-slate-800">{project.name}</span>
+            <span className="text-xs text-slate-400">
+              ({pendingTodos.length})
             </span>
           </button>
 
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded"
+              className="p-0.5 text-slate-400 hover:text-slate-600 rounded"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
             </button>
@@ -180,24 +209,24 @@ export default function ProjectSection({
         </div>
 
         {project.description && (
-          <p className="text-sm text-slate-500 mt-1 ml-8">{project.description}</p>
+          <p className="text-xs text-slate-500 mt-0.5 ml-5">{project.description}</p>
         )}
 
         {notes.length > 0 && (
-          <div className="mt-2 ml-8">
-            <p className="text-xs text-slate-400 mb-1">{notes.length} note(s)</p>
+          <div className="mt-0.5 ml-5">
+            <p className="text-xs text-slate-400">{notes.length} note(s)</p>
           </div>
         )}
       </div>
 
       {/* Todo List */}
       {isExpanded && (
-        <div className="p-3">
+        <div className="p-2">
           {/* Add Todo Input */}
           <AddTodoInput projectId={project.id} onAddTodo={onAddTodo} />
 
           {/* Pending Todos */}
-          <div className="mt-3 space-y-1">
+          <div className="mt-2 space-y-0.5">
             {pendingTodos.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-4">
                 {isDroppingFromOther ? 'Drop here to move to this project' : 'No pending todos. Add one above!'}
@@ -211,10 +240,14 @@ export default function ProjectSection({
                   <SortableTodoItem
                     key={todo.id}
                     todo={todo}
+                    subtasks={subtasks.filter(s => s.todoId === todo.id)}
                     onToggle={onToggleTodo}
                     onDelete={onDeleteTodo}
                     onUpdatePriority={onUpdateTodoPriority}
                     celebrationEnabled={celebrationEnabled}
+                    onAddSubtask={onAddSubtask}
+                    onToggleSubtask={onToggleSubtask}
+                    onDeleteSubtask={onDeleteSubtask}
                   />
                 ))}
               </SortableContext>
@@ -223,7 +256,7 @@ export default function ProjectSection({
 
           {/* Completed Todos Toggle */}
           {completedTodos.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-slate-100">
+            <div className="mt-3 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
                 className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
@@ -245,10 +278,14 @@ export default function ProjectSection({
                     <TodoItem
                       key={todo.id}
                       todo={todo}
+                      subtasks={subtasks.filter(s => s.todoId === todo.id)}
                       onToggle={onToggleTodo}
                       onDelete={onDeleteTodo}
                       onUpdatePriority={onUpdateTodoPriority}
                       celebrationEnabled={celebrationEnabled}
+                      onAddSubtask={onAddSubtask}
+                      onToggleSubtask={onToggleSubtask}
+                      onDeleteSubtask={onDeleteSubtask}
                     />
                   ))}
                 </div>

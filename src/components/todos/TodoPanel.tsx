@@ -1,17 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   DndContext,
   DragEndEvent,
   DragStartEvent,
+  DragCancelEvent,
+  DragOverlay,
   PointerSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
   closestCenter,
+  CollisionDetection,
   UniqueIdentifier
 } from '@dnd-kit/core'
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { Project, Todo, Note } from '../../types'
+import {
+  arrayMove,
+  sortableKeyboardCoordinates,
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Project, Todo, Note, Subtask } from '../../types'
 import ProjectSection from './ProjectSection'
 import AddProjectModal from './AddProjectModal'
 
@@ -103,10 +113,82 @@ function ArchivedProjectCard({ project, todos, onRestore }: ArchivedProjectCardP
   )
 }
 
+function ProjectDragOverlay({ project }: { project: Project }) {
+  return (
+    <div className="rounded-xl shadow-lg border border-primary-200 bg-white overflow-hidden rotate-1">
+      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-center gap-1.5">
+          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+          </svg>
+          <svg className="w-3 h-3 text-slate-400 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-sm font-medium text-slate-800">{project.name}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface SortableProjectSectionProps {
+  project: Project
+  todos: Todo[]
+  subtasks: Subtask[]
+  notes: Note[]
+  onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
+  onToggleTodo: (id: string) => Promise<Todo | undefined>
+  onDeleteTodo: (id: string) => Promise<void>
+  onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
+  onAddNote: (projectId: string, content: string) => Promise<Note>
+  onArchiveProject: (id: string) => Promise<void>
+  onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
+  onToggleSubtask: (id: string) => Promise<Subtask | undefined>
+  onDeleteSubtask: (id: string) => Promise<void>
+  celebrationEnabled: boolean
+  activeId?: UniqueIdentifier | null
+  isDraggingProject: boolean
+}
+
+function SortableProjectSection({
+  project,
+  isDraggingProject,
+  activeId,
+  ...props
+}: SortableProjectSectionProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: project.id, data: { type: 'project' } })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ProjectSection
+        project={project}
+        activeId={activeId}
+        isDraggingProject={isDraggingProject}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        {...props}
+      />
+    </div>
+  )
+}
+
 interface TodoPanelProps {
   projects: Project[]
   archivedProjects: Project[]
   todos: Todo[]
+  subtasks: Subtask[]
   notes: Note[]
   onAddProject: (name: string, description: string) => Promise<Project>
   onArchiveProject: (id: string) => Promise<void>
@@ -117,6 +199,10 @@ interface TodoPanelProps {
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string, content: string) => Promise<Note>
   onMoveTodo: (todoId: string, newProjectId: string) => Promise<void>
+  onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
+  onToggleSubtask: (id: string) => Promise<Subtask | undefined>
+  onDeleteSubtask: (id: string) => Promise<void>
+  onReorderProjects: (orderedIds: string[]) => Promise<void>
   celebrationEnabled: boolean
 }
 
@@ -124,6 +210,7 @@ export default function TodoPanel({
   projects,
   archivedProjects,
   todos,
+  subtasks,
   notes,
   onAddProject,
   onArchiveProject,
@@ -134,12 +221,18 @@ export default function TodoPanel({
   onUpdateTodoPriority,
   onAddNote,
   onMoveTodo,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onReorderProjects,
   celebrationEnabled
 }: TodoPanelProps) {
   const [showAddProject, setShowAddProject] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
+  const [activeDragType, setActiveDragType] = useState<'project' | 'todo' | null>(null)
   const [localTodos, setLocalTodos] = useState<Todo[]>(todos)
+  const [localProjects, setLocalProjects] = useState<Project[]>(projects)
 
   // Sync localTodos with todos prop (new todos, deletions, status/priority/project changes)
   useEffect(() => {
@@ -166,6 +259,23 @@ export default function TodoPanel({
     }
   }, [todos])
 
+  // Sync localProjects with projects prop (additions/removals only — preserve drag order)
+  useEffect(() => {
+    const projectMap = new Map(projects.map(p => [p.id, p]))
+    const localMap = new Map(localProjects.map(p => [p.id, p]))
+
+    const hasNew = projects.some(p => !localMap.has(p.id))
+    const hasRemoved = localProjects.some(p => !projectMap.has(p.id))
+
+    if (hasNew || hasRemoved) {
+      const preserved = localProjects
+        .filter(p => projectMap.has(p.id))
+        .map(p => projectMap.get(p.id)!)
+      const added = projects.filter(p => !localMap.has(p.id))
+      setLocalProjects([...preserved, ...added])
+    }
+  }, [projects])
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 }
@@ -175,21 +285,48 @@ export default function TodoPanel({
     })
   )
 
+  // When dragging a project, restrict collision detection to project-level sortables only.
+  // Without this, closestCenter picks up todo items inside other project cards.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    if (args.active.data.current?.type === 'project') {
+      const projectIds = new Set(localProjects.map(p => p.id))
+      return closestCenter({
+        ...args,
+        droppableContainers: args.droppableContainers.filter(c => projectIds.has(String(c.id)))
+      })
+    }
+    return closestCenter(args)
+  }, [localProjects])
+
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveId(active.id)
+    setActiveDragType(active.data.current?.type === 'project' ? 'project' : 'todo')
   }
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     setActiveId(null)
+    setActiveDragType(null)
     if (!over || active.id === over.id) return
 
+    // Project reorder
+    if (active.data.current?.type === 'project') {
+      const oldIndex = localProjects.findIndex(p => p.id === active.id)
+      const newIndex = localProjects.findIndex(p => p.id === over.id)
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const reordered = arrayMove(localProjects, oldIndex, newIndex)
+        setLocalProjects(reordered)
+        await onReorderProjects(reordered.map(p => p.id))
+      }
+      return
+    }
+
+    // Todo reorder / cross-project move
     const activeTodoId = String(active.id)
     const activeTodo = localTodos.find(t => t.id === activeTodoId)
     if (!activeTodo) return
 
     const overId = String(over.id)
 
-    // Determine target project
     let targetProjectId: string
     if (overId.startsWith('project-')) {
       targetProjectId = overId.slice('project-'.length)
@@ -200,13 +337,11 @@ export default function TodoPanel({
     }
 
     if (targetProjectId !== activeTodo.projectId) {
-      // Cross-project move: optimistically update then persist
       setLocalTodos(prev =>
         prev.map(t => t.id === activeTodoId ? { ...t, projectId: targetProjectId } : t)
       )
       await onMoveTodo(activeTodoId, targetProjectId)
     } else if (!overId.startsWith('project-')) {
-      // Intra-project reorder among pending todos (priority-sorted order)
       const projectPendingTodos = localTodos
         .filter(t => t.projectId === targetProjectId && !t.completed)
         .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
@@ -222,6 +357,11 @@ export default function TodoPanel({
         })
       }
     }
+  }
+
+  const handleDragCancel = (_e: DragCancelEvent) => {
+    setActiveId(null)
+    setActiveDragType(null)
   }
 
   const handleAddProject = async (name: string, description: string) => {
@@ -247,8 +387,8 @@ export default function TodoPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {projects.length === 0 ? (
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {localProjects.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-slate-500">
               <div className="text-4xl mb-4">📁</div>
@@ -265,26 +405,45 @@ export default function TodoPanel({
         ) : (
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={collisionDetection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
-            {projects.map(project => (
-              <ProjectSection
-                key={project.id}
-                project={project}
-                todos={localTodos.filter(t => t.projectId === project.id)}
-                notes={notes.filter(n => n.projectId === project.id)}
-                onAddTodo={onAddTodo}
-                onToggleTodo={onToggleTodo}
-                onDeleteTodo={onDeleteTodo}
-                onUpdateTodoPriority={onUpdateTodoPriority}
-                onAddNote={onAddNote}
-                onArchiveProject={onArchiveProject}
-                celebrationEnabled={celebrationEnabled}
-                activeId={activeId}
-              />
-            ))}
+            <SortableContext
+              items={localProjects.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {localProjects.map(project => (
+                <SortableProjectSection
+                  key={project.id}
+                  project={project}
+                  todos={localTodos.filter(t => t.projectId === project.id)}
+                  subtasks={subtasks}
+                  notes={notes.filter(n => n.projectId === project.id)}
+                  onAddTodo={onAddTodo}
+                  onToggleTodo={onToggleTodo}
+                  onDeleteTodo={onDeleteTodo}
+                  onUpdateTodoPriority={onUpdateTodoPriority}
+                  onAddNote={onAddNote}
+                  onArchiveProject={onArchiveProject}
+                  onAddSubtask={onAddSubtask}
+                  onToggleSubtask={onToggleSubtask}
+                  onDeleteSubtask={onDeleteSubtask}
+                  celebrationEnabled={celebrationEnabled}
+                  activeId={activeId}
+                  isDraggingProject={activeDragType === 'project'}
+                />
+              ))}
+            </SortableContext>
+            <DragOverlay dropAnimation={null}>
+              {activeDragType === 'project' && activeId
+                ? (() => {
+                    const project = localProjects.find(p => p.id === activeId)
+                    return project ? <ProjectDragOverlay project={project} /> : null
+                  })()
+                : null}
+            </DragOverlay>
           </DndContext>
         )}
 

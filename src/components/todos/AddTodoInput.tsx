@@ -29,23 +29,14 @@ export default function AddTodoInput({ projectId, onAddTodo }: AddTodoInputProps
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="+ Add a new todo..."
-        className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        disabled={isAdding}
-      />
-      <button
-        onClick={handleAdd}
-        disabled={!text.trim() || isAdding}
-        className="px-3 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-      >
-        Add
-      </button>
-    </div>
+    <input
+      type="text"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onKeyDown={handleKeyDown}
+      placeholder="+ Add a new todo..."
+      className="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      disabled={isAdding}
+    />
   )
 }
