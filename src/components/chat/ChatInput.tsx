@@ -24,22 +24,23 @@ export default function ChatInput({ onSendMessage, isLoading, disabled }: ChatIn
   }
 
   return (
-    <div className="p-4 border-t border-slate-200">
+    <div className="p-2 mac-panel-header border-t border-[#8090b0]">
       <div className="flex items-end gap-2">
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={disabled ? "Add API key in Settings to chat..." : "Type a message... (Enter to send, Shift+Enter for new line)"}
+          placeholder={disabled ? "Add API key in Settings to chat..." : "Type a message... (Enter to send)"}
           disabled={isLoading || disabled}
-          className="flex-1 resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed"
+          className="flex-1 resize-none px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed mac-inset"
           rows={1}
-          style={{ minHeight: '44px', maxHeight: '120px' }}
+          style={{ minHeight: '36px', maxHeight: '100px' }}
         />
         <button
           onClick={handleSubmit}
           disabled={!message.trim() || isLoading || disabled}
-          className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center hover:bg-primary-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+          className="flex-shrink-0 w-9 h-9 bg-primary-500 text-white flex items-center justify-center hover:bg-primary-600 disabled:bg-[#a0a0a0] disabled:cursor-not-allowed transition-colors"
+          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.25), inset -1px -1px 0 rgba(0,0,0,0.2), 1px 1px 0 rgba(0,0,0,0.3)' }}
         >
           {isLoading ? (
             <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">

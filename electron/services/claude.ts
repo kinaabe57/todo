@@ -1,10 +1,28 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { DatabaseService } from './database'
-import { Project, Todo, Note } from '../../src/types'
+import { Project, Todo, Note, ChatMessage } from '../../src/types'
 
 interface ClaudeResponse {
   content: string
   suggestedTodos?: { text: string; projectId?: string; added: boolean }[]
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<input[^>]*checked[^>]*>/gi, '[x]')
+    .replace(/<input[^>]*>/gi, '[ ]')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 export class ClaudeService {
@@ -23,91 +41,108 @@ export class ClaudeService {
   }
 
   private buildSystemPrompt(projects: Project[], todos: Todo[], notes: Note[]): string {
+    // ── Projects & todos ─────────────────────────────────────────────────────
     const projectSummaries = projects.map(project => {
       const projectTodos = todos.filter(t => t.projectId === project.id)
-      const pending = projectTodos.filter(t => !t.completed).length
+      const pending = projectTodos.filter(t => !t.completed)
       const completed = projectTodos.filter(t => t.completed).length
-      const projectNotes = notes.filter(n => n.projectId === project.id)
-      
-      let summary = `- **${project.name}**: ${project.description || 'No description'}`
-      summary += `\n  - Status: ${pending} pending todos, ${completed} completed`
-      
-      if (projectNotes.length > 0) {
-        summary += `\n  - Recent notes:`
-        projectNotes.slice(0, 3).forEach(note => {
-          const date = new Date(note.createdAt).toLocaleDateString()
-          const truncatedContent = note.content.length > 100 
-            ? note.content.substring(0, 100) + '...' 
-            : note.content
-          summary += `\n    - [${date}]: ${truncatedContent}`
+
+      let summary = `### Project: ${project.name}`
+      if (project.description) summary += `\nDescription: ${project.description}`
+      summary += `\nStatus: ${pending.length} pending, ${completed} completed`
+
+      if (pending.length > 0) {
+        summary += '\nPending todos:'
+        pending.forEach(t => {
+          summary += `\n  [${t.priority}] ${t.text}`
         })
       }
-      
-      const pendingTodos = projectTodos.filter(t => !t.completed)
-      if (pendingTodos.length > 0) {
-        summary += `\n  - Current todos:`
-        pendingTodos.slice(0, 5).forEach(todo => {
-          summary += `\n    - ${todo.text}`
-        })
-      }
-      
       return summary
     }).join('\n\n')
 
-    return `You are a helpful productivity assistant that helps manage projects and todos. You have access to the user's current projects and their progress.
+    // ── Notes ────────────────────────────────────────────────────────────────
+    const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
 
-CURRENT PROJECTS AND STATUS:
-${projectSummaries || 'No projects yet. Help the user get started by suggesting they create their first project.'}
+    const notesSummary = notes.length > 0
+      ? notes.map(note => {
+          const date = new Date(note.createdAt).toLocaleDateString()
+          const project = note.projectId ? ` [Project: ${projectMap[note.projectId] || note.projectId}]` : ''
+          const pinned = note.pinned ? ' [pinned]' : ''
+          const title = note.title ? `Title: ${note.title}\n` : ''
+          const body = stripHtml(note.content)
+          return `---\nNote ID: ${note.id}\nDate: ${date}${project}${pinned}\n${title}${body}`
+        }).join('\n')
+      : 'No notes yet.'
 
-YOUR CAPABILITIES:
-1. Suggest actionable todo items based on project context and recent notes
-2. Help prioritize tasks and provide productivity advice
-3. Answer questions about project status and progress
-4. Provide encouragement and support
+    return `You are a helpful general-purpose assistant with access to the user's personal notes, projects, and todos. You can answer any question — whether it draws on the user's own content or your general knowledge.
 
-WHEN SUGGESTING TODOS:
-- Keep each todo SHORT and CONCISE
-- Each todo must be a SINGLE atomic action - never combine multiple tasks
-- If a task has multiple parts, split them into SEPARATE todos
-- Do NOT use "and" or commas to list multiple actions in one todo
-- Focus on the essence of what needs to be done
-- Format each suggestion on a new line starting with "• "
-- If a suggestion is for a specific project, prefix with **ProjectName**:
+## USER'S PROJECTS & TODOS
+${projectSummaries || 'No projects yet.'}
 
-BAD example: "• Research technical requirements, user interface design, and account switching"
-GOOD example:
-• Research technical requirements
-• Design user interface mockups
-• Implement account switching
+## USER'S NOTES
+${notesSummary}
 
-IMPORTANT: Quality over quantity. Each todo should be immediately actionable as a single task.`
+## YOUR CAPABILITIES
+- Answer any question using general knowledge, external information, or reasoning
+- Search through and summarize the user's notes when asked
+- Reference specific notes, todos, or project details in your answers
+- Help manage tasks: suggest new todos, help prioritize, break down tasks
+- Act as a general conversational assistant — not just a productivity tool
+
+## WHEN TO SUGGEST TODOS
+Only add a todo list when the user is explicitly asking for task help, action items, or next steps. Do NOT add todos when answering informational questions, summarizing notes, explaining concepts, or having a general conversation.
+
+When todos ARE appropriate, end your response with this exact block (3 by default, more only if the user asks for a detailed breakdown):
+
+SUGGESTED_TODOS:
+• [todo text]
+• [todo text]
+• [todo text]
+
+If for a specific project, prefix the text with **ProjectName**: (e.g. "• **Work**: Write the report").
+Do NOT use this block for general answers — only when the user wants actionable tasks.
+
+## TONE
+Be concise and direct. Reference the user's actual notes and todos when relevant. Answer general questions directly without forcing them back to task management.`
   }
 
   async sendMessage(
-    message: string, 
-    projects: Project[], 
-    todos: Todo[], 
-    notes: Note[]
+    message: string,
+    projects: Project[],
+    todos: Todo[],
+    notes: Note[],
+    history: ChatMessage[]
   ): Promise<ClaudeResponse> {
     const apiKey = this.getApiKey()
     const client = new Anthropic({ apiKey })
-    
+
     const systemPrompt = this.buildSystemPrompt(projects, todos, notes)
-    
+
+    // Build conversation history (exclude the current message — it's added separately)
+    const conversationMessages: Anthropic.MessageParam[] = history
+      .filter(m => m.content && m.content.trim())
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content
+      }))
+
+    conversationMessages.push({ role: 'user', content: message })
+
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: systemPrompt,
-      messages: [
-        { role: 'user', content: message }
-      ]
+      messages: conversationMessages
     })
 
     const contentBlock = response.content[0]
-    const content = contentBlock.type === 'text' ? contentBlock.text : ''
-    
-    const suggestedTodos = this.extractSuggestedTodos(content, projects)
-    
+    const rawContent = contentBlock.type === 'text' ? contentBlock.text : ''
+
+    const suggestedTodos = this.extractSuggestedTodos(rawContent, projects)
+
+    // Strip the SUGGESTED_TODOS block from the displayed message
+    const content = rawContent.replace(/\n*SUGGESTED_TODOS:\s*\n[\s\S]*$/, '').trim()
+
     return {
       content,
       suggestedTodos: suggestedTodos.length > 0 ? suggestedTodos : undefined
@@ -115,35 +150,35 @@ IMPORTANT: Quality over quantity. Each todo should be immediately actionable as 
   }
 
   private extractSuggestedTodos(
-    content: string, 
+    content: string,
     projects: Project[]
   ): { text: string; projectId?: string; added: boolean }[] {
+    // Only parse the explicit SUGGESTED_TODOS: section — ignore all other bullets
+    const sectionMatch = content.match(/SUGGESTED_TODOS:\s*\n([\s\S]+?)(?:\n\n|$)/)
+    if (!sectionMatch) return []
+
     const todos: { text: string; projectId?: string; added: boolean }[] = []
-    
-    const bulletPoints = content.match(/[•\-\*]\s+(.+)/g)
-    if (!bulletPoints) return todos
+    const bulletPoints = sectionMatch[1].match(/[•\-\*]\s+(.+)/g)
+    if (!bulletPoints) return []
 
     for (const point of bulletPoints) {
       let text = point.replace(/^[•\-\*]\s+/, '').trim()
-      
-      if (text.length < 5 || text.length > 200) continue
-      if (text.toLowerCase().includes('here are') || text.toLowerCase().includes('i suggest')) continue
-      
+      if (text.length < 3 || text.length > 200) continue
+
       let projectId: string | undefined
       for (const project of projects) {
-        if (text.toLowerCase().includes(project.name.toLowerCase())) {
+        const headerPattern = new RegExp(`^\\*\\*${project.name}\\*\\*:?\\s*`, 'i')
+        if (headerPattern.test(text)) {
           projectId = project.id
-          // Remove project header prefix like "**ProjectName**:" from the beginning of the text
-          const headerPattern = new RegExp(`^\\*\\*${project.name}\\*\\*:?\\s*`, 'i')
           text = text.replace(headerPattern, '').trim()
           break
         }
       }
-      
+
       if (!projectId && projects.length === 1) {
         projectId = projects[0].id
       }
-      
+
       todos.push({ text, projectId, added: false })
     }
 

@@ -39,7 +39,7 @@ function ArchivedProjectCard({ project, todos, onRestore }: ArchivedProjectCardP
   const completedTodos = todos.filter(t => t.completed)
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <div className="mac-raised overflow-hidden">
       <div className="px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -140,8 +140,9 @@ interface SortableProjectSectionProps {
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
-  onAddNote: (projectId: string, content: string) => Promise<Note>
+  onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
+  onEditProject: (project: Project) => void
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
   onToggleSubtask: (id: string) => Promise<Subtask | undefined>
   onDeleteSubtask: (id: string) => Promise<void>
@@ -190,14 +191,15 @@ interface TodoPanelProps {
   todos: Todo[]
   subtasks: Subtask[]
   notes: Note[]
-  onAddProject: (name: string, description: string) => Promise<Project>
+  onAddProject: (name: string, description: string, color: string) => Promise<Project>
+  onUpdateProject: (id: string, name: string, description: string, color: string) => Promise<void>
   onArchiveProject: (id: string) => Promise<void>
   onRestoreProject: (id: string) => Promise<void>
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
-  onAddNote: (projectId: string, content: string) => Promise<Note>
+  onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onMoveTodo: (todoId: string, newProjectId: string) => Promise<void>
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
   onToggleSubtask: (id: string) => Promise<Subtask | undefined>
@@ -213,6 +215,7 @@ export default function TodoPanel({
   subtasks,
   notes,
   onAddProject,
+  onUpdateProject,
   onArchiveProject,
   onRestoreProject,
   onAddTodo,
@@ -228,6 +231,7 @@ export default function TodoPanel({
   celebrationEnabled
 }: TodoPanelProps) {
   const [showAddProject, setShowAddProject] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null)
   const [activeDragType, setActiveDragType] = useState<'project' | 'todo' | null>(null)
@@ -259,15 +263,19 @@ export default function TodoPanel({
     }
   }, [todos])
 
-  // Sync localProjects with projects prop (additions/removals only — preserve drag order)
+  // Sync localProjects with projects prop (additions/removals/data changes — preserve drag order)
   useEffect(() => {
     const projectMap = new Map(projects.map(p => [p.id, p]))
     const localMap = new Map(localProjects.map(p => [p.id, p]))
 
     const hasNew = projects.some(p => !localMap.has(p.id))
     const hasRemoved = localProjects.some(p => !projectMap.has(p.id))
+    const hasChanges = projects.some(p => {
+      const local = localMap.get(p.id)
+      return local && (local.name !== p.name || local.description !== p.description || local.color !== p.color)
+    })
 
-    if (hasNew || hasRemoved) {
+    if (hasNew || hasRemoved || hasChanges) {
       const preserved = localProjects
         .filter(p => projectMap.has(p.id))
         .map(p => projectMap.get(p.id)!)
@@ -364,21 +372,27 @@ export default function TodoPanel({
     setActiveDragType(null)
   }
 
-  const handleAddProject = async (name: string, description: string) => {
-    await onAddProject(name, description)
+  const handleAddProject = async (name: string, description: string, color: string) => {
+    await onAddProject(name, description, color)
     setShowAddProject(false)
   }
 
+  const handleUpdateProject = async (id: string, name: string, description: string, color: string) => {
+    await onUpdateProject(id, name, description, color)
+    setEditingProject(null)
+  }
+
   return (
-    <div className="flex flex-col h-full bg-slate-50">
-      <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between">
-        <h2 className="text-lg font-medium text-slate-800 flex items-center gap-2">
-          <span className="text-xl">📋</span>
+    <div className="flex flex-col h-full bg-[#b8c8d8]">
+      <div className="px-3 py-2 mac-panel-header flex items-center justify-between">
+        <h2 className="text-xs font-bold text-[#1a2a3a] flex items-center gap-2 uppercase tracking-wide">
+          <span>📋</span>
           My Todos
         </h2>
         <button
           onClick={() => setShowAddProject(true)}
-          className="text-sm bg-primary-500 text-white px-3 py-1.5 rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-1"
+          className="text-xs bg-primary-500 text-white px-3 py-1 mac-raised hover:bg-primary-600 transition-colors flex items-center gap-1"
+          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.25), 1px 1px 0 rgba(0,0,0,0.3)' }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -396,7 +410,8 @@ export default function TodoPanel({
               <p className="text-sm mt-2">Create your first project to start adding todos</p>
               <button
                 onClick={() => setShowAddProject(true)}
-                className="mt-4 text-sm bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+                className="mt-4 text-xs bg-primary-500 text-white px-4 py-2 hover:bg-primary-600 transition-colors"
+          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.25), 1px 1px 0 rgba(0,0,0,0.3)' }}
               >
                 Create Project
               </button>
@@ -427,6 +442,7 @@ export default function TodoPanel({
                   onUpdateTodoPriority={onUpdateTodoPriority}
                   onAddNote={onAddNote}
                   onArchiveProject={onArchiveProject}
+                  onEditProject={setEditingProject}
                   onAddSubtask={onAddSubtask}
                   onToggleSubtask={onToggleSubtask}
                   onDeleteSubtask={onDeleteSubtask}
@@ -452,7 +468,7 @@ export default function TodoPanel({
           <div className="mt-6 pt-4 border-t border-slate-200">
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-3"
+              className="flex items-center gap-2 text-xs text-[#3a5070] hover:text-[#1a2a3a] mb-3"
             >
               <svg
                 className={`w-4 h-4 transition-transform ${showArchived ? 'rotate-90' : ''}`}
@@ -486,6 +502,13 @@ export default function TodoPanel({
         <AddProjectModal
           onAdd={handleAddProject}
           onClose={() => setShowAddProject(false)}
+        />
+      )}
+      {editingProject && (
+        <AddProjectModal
+          project={editingProject}
+          onUpdate={handleUpdateProject}
+          onClose={() => setEditingProject(null)}
         />
       )}
     </div>

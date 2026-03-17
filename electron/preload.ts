@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Projects
   getProjects: () => ipcRenderer.invoke('get-projects'),
   getArchivedProjects: () => ipcRenderer.invoke('get-archived-projects'),
-  addProject: (name: string, description: string) => ipcRenderer.invoke('add-project', name, description),
+  addProject: (name: string, description: string, color: string) => ipcRenderer.invoke('add-project', name, description, color),
+  updateProject: (id: string, name: string, description: string, color: string) => ipcRenderer.invoke('update-project', id, name, description, color),
   archiveProject: (id: string) => ipcRenderer.invoke('archive-project', id),
   restoreProject: (id: string) => ipcRenderer.invoke('restore-project', id),
   deleteProject: (id: string) => ipcRenderer.invoke('delete-project', id),
@@ -28,15 +29,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Notes
   getNotes: () => ipcRenderer.invoke('get-notes'),
-  addNote: (projectId: string, content: string) => ipcRenderer.invoke('add-note', projectId, content),
+  addNote: (projectId: string | null, content: string, title?: string | null) => ipcRenderer.invoke('add-note', projectId, content, title),
+  updateNote: (id: string, updates: { content?: string; title?: string | null; pinned?: boolean }) => ipcRenderer.invoke('update-note', id, updates),
+  deleteNote: (id: string) => ipcRenderer.invoke('delete-note', id),
 
   // Messages
   getMessages: () => ipcRenderer.invoke('get-messages'),
   saveMessage: (message: ChatMessage) => ipcRenderer.invoke('save-message', message),
 
   // Claude
-  sendToClaude: (message: string, projects: Project[], todos: Todo[], notes: Note[]) => 
-    ipcRenderer.invoke('send-to-claude', message, projects, todos, notes),
+  sendToClaude: (message: string, projects: Project[], todos: Todo[], notes: Note[], history: ChatMessage[]) =>
+    ipcRenderer.invoke('send-to-claude', message, projects, todos, notes, history),
 
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),

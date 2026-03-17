@@ -67,8 +67,9 @@ interface ProjectSectionProps {
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
   onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
-  onAddNote: (projectId: string, content: string) => Promise<Note>
+  onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
+  onEditProject?: (project: Project) => void
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
   onToggleSubtask: (id: string) => Promise<Subtask | undefined>
   onDeleteSubtask: (id: string) => Promise<void>
@@ -91,6 +92,7 @@ export default function ProjectSection({
   onUpdateTodoPriority,
   onAddNote,
   onArchiveProject,
+  onEditProject,
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
@@ -122,22 +124,28 @@ export default function ProjectSection({
     setShowNoteModal(false)
   }
 
+  const accentColor = project.color || '#64748b'
+
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl shadow-sm border overflow-hidden transition-colors ${
+      className={`overflow-hidden transition-colors ${
         isDroppingFromOther
-          ? 'bg-primary-50 border-primary-400 shadow-md'
-          : 'bg-white border-slate-200'
+          ? 'bg-[#ddeeff] border border-primary-400'
+          : 'mac-raised'
       }`}
     >
       {/* Project Header */}
-      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200">
+      <div
+        className="px-3 py-1.5"
+        style={{ backgroundColor: isDroppingFromOther ? undefined : accentColor }}
+      >
         <div className="flex items-center justify-between">
           {dragHandleProps && (
             <div
               {...dragHandleProps}
-              className="flex-shrink-0 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 touch-none mr-1"
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none mr-1"
+              style={{ color: 'rgba(255,255,255,0.6)' }}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
@@ -149,15 +157,16 @@ export default function ProjectSection({
             className="flex items-center gap-1.5 text-left flex-1"
           >
             <svg
-              className={`w-3 h-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              style={{ color: 'rgba(255,255,255,0.8)' }}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <span className="text-sm font-medium text-slate-800">{project.name}</span>
-            <span className="text-xs text-slate-400">
+            <span className="text-sm font-semibold text-white">{project.name}</span>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
               ({pendingTodos.length})
             </span>
           </button>
@@ -165,7 +174,8 @@ export default function ProjectSection({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-0.5 text-slate-400 hover:text-slate-600 rounded"
+              className="p-0.5 rounded"
+              style={{ color: 'rgba(255,255,255,0.7)' }}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -176,6 +186,20 @@ export default function ProjectSection({
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                  {onEditProject && (
+                    <button
+                      onClick={() => {
+                        onEditProject(project)
+                        setShowMenu(false)
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Project
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowNoteModal(true)
@@ -209,12 +233,12 @@ export default function ProjectSection({
         </div>
 
         {project.description && (
-          <p className="text-xs text-slate-500 mt-0.5 ml-5">{project.description}</p>
+          <p className="text-xs mt-0.5 ml-5" style={{ color: 'rgba(255,255,255,0.8)' }}>{project.description}</p>
         )}
 
         {notes.length > 0 && (
           <div className="mt-0.5 ml-5">
-            <p className="text-xs text-slate-400">{notes.length} note(s)</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{notes.length} note(s)</p>
           </div>
         )}
       </div>
@@ -259,7 +283,7 @@ export default function ProjectSection({
             <div className="mt-3 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
-                className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                className="flex items-center gap-2 text-xs text-[#4a6080] hover:text-[#1a2a3a]"
               >
                 <svg
                   className={`w-4 h-4 transition-transform ${showCompleted ? 'rotate-90' : ''}`}

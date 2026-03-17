@@ -2,6 +2,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
+  color: string;
   createdAt: string;
   archived: boolean;
   archivedAt: string | null;
@@ -9,9 +10,11 @@ export interface Project {
 
 export interface Note {
   id: string;
-  projectId: string;
+  projectId: string | null;
+  title: string | null;
   content: string;
   createdAt: string;
+  pinned: boolean;
 }
 
 export interface Subtask {

@@ -89,7 +89,7 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdateP
         exit={{ opacity: 0, x: -20 }}
       >
         {/* Main todo row */}
-        <div className={`group flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors ${
+        <div className={`group flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#dde8f4] transition-colors ${
           todo.completed ? 'opacity-60' : ''
         }`}>
           {/* Drag Handle */}
@@ -136,11 +136,12 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdateP
           {/* Checkbox */}
           <button
             onClick={handleToggle}
-            className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+            className={`flex-shrink-0 w-4 h-4 border-2 flex items-center justify-center transition-all ${
               todo.completed
-                ? 'bg-green-500 border-green-500'
-                : 'border-slate-300 hover:border-primary-500'
+                ? 'bg-green-600 border-green-700'
+                : 'border-[#8090b0] hover:border-primary-500 bg-white'
             } ${isAnimating ? 'animate-check-bounce' : ''}`}
+            style={{ boxShadow: 'inset 1px 1px 0 rgba(0,0,0,0.15)' }}
           >
             {todo.completed && (
               <motion.svg
@@ -167,7 +168,7 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdateP
 
           {/* Source Badge */}
           {todo.source === 'ai' && (
-            <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">
+            <span className="text-xs bg-[#d8d0e8] text-[#5030a0] px-1.5 py-0.5" style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.5)' }}>
               AI
             </span>
           )}
@@ -217,11 +218,12 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdateP
             {pendingSubtasks.map(subtask => (
               <div
                 key={subtask.id}
-                className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors"
+                className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#dde8f4] transition-colors"
               >
                 <button
                   onClick={() => onToggleSubtask(subtask.id)}
-                  className="flex-shrink-0 w-5 h-5 rounded-md border-2 border-slate-300 hover:border-primary-500 flex items-center justify-center transition-all"
+                  className="flex-shrink-0 w-4 h-4 border-2 border-[#8090b0] hover:border-primary-500 bg-white flex items-center justify-center transition-all"
+          style={{ boxShadow: 'inset 1px 1px 0 rgba(0,0,0,0.15)' }}
                 />
                 <span className="flex-1 text-sm text-slate-700">{subtask.text}</span>
                 <button
@@ -241,11 +243,11 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdateP
                 {completedSubtasks.map(subtask => (
                   <div
                     key={subtask.id}
-                    className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors"
+                    className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#dde8f4] transition-colors"
                   >
                     <button
                       onClick={() => onToggleSubtask(subtask.id)}
-                      className="flex-shrink-0 w-5 h-5 rounded-md border-2 bg-green-500 border-green-500 flex items-center justify-center transition-all"
+                      className="flex-shrink-0 w-4 h-4 border-2 bg-green-600 border-green-700 flex items-center justify-center transition-all"
                     >
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />

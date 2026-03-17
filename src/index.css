@@ -3,15 +3,16 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.4;
   font-weight: 400;
-  color: #213547;
-  background-color: #ffffff;
+  color: #1a2a3a;
+  background-color: #b8c8d8;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  font-size: 13px;
 }
 
 body {
@@ -27,30 +28,75 @@ body {
 }
 
 /* Title bar drag region */
-.drag-region {
-  -webkit-app-region: drag;
+.drag-region { -webkit-app-region: drag; }
+.no-drag     { -webkit-app-region: no-drag; }
+
+/* ── Mac OS Late 90s / iMac Era Chrome ────────────────────────── */
+
+/* Top-level app title bar — bondi blue pinstripe */
+.mac-app-bar {
+  background: repeating-linear-gradient(
+    to bottom,
+    #2898d0 0px, #2898d0 1px,
+    #1070a8 1px, #1070a8 2px
+  );
+  border-bottom: 2px solid #0a5080;
+  box-shadow: inset 0 1px 0 #60c0e8;
 }
 
-.no-drag {
-  -webkit-app-region: no-drag;
+/* Panel sub-header — blue-tinted platinum chrome */
+.mac-panel-header {
+  background: linear-gradient(to bottom, #d8e4f0 0%, #c8d4e4 100%);
+  box-shadow: inset 0 1px 0 #eef4fa, inset 0 -1px 0 #8090a8;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Modal / floating window */
+.mac-window {
+  background: #c8d4e0;
+  border: 1px solid #3a5070;
+  box-shadow:
+    inset 1px 1px 0 #eef4fa,
+    inset -1px -1px 0 #6080a0,
+    4px 4px 0 rgba(0,0,30,0.4);
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 4px;
+/* Raised surface — white-to-cream gradient with blue tinted bevel */
+.mac-raised {
+  background: linear-gradient(to bottom, #ffffff 0%, #eef2f8 100%);
+  border: 1px solid #8090a8;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #7090b0;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+/* Inset well — inputs, content areas */
+.mac-inset {
+  background: #ffffff;
+  border: 1px solid #7090b0;
+  box-shadow: inset 1px 1px 3px rgba(0,40,80,0.15), inset -1px -1px 0 #dde8f4;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* Note editor list styles */
+.note-editor ul, .note-content ul { list-style-type: disc; padding-left: 1.25rem; margin: 0.2em 0; }
+.note-editor li, .note-content li { margin: 0.1em 0; }
+
+/* ── iMac-era scrollbar — teal/blue tinted ───────────────────── */
+::-webkit-scrollbar              { width: 15px; height: 15px; }
+::-webkit-scrollbar-track        {
+  background: linear-gradient(to right, #b0c4d8, #c0d0e0);
+  border-left: 1px solid #7090b0;
+}
+::-webkit-scrollbar-thumb        {
+  background: linear-gradient(to bottom, #a0c0dc 0%, #80a8cc 100%);
+  border: 1px solid #6080a8;
+  box-shadow: inset 1px 1px 0 #d0e4f4, inset -1px -1px 0 #6080a0;
+  min-height: 24px;
+}
+::-webkit-scrollbar-thumb:hover  {
+  background: linear-gradient(to bottom, #80b0d0 0%, #5890c0 100%);
+}
+::-webkit-scrollbar-button       {
+  background: linear-gradient(to bottom, #c0d4e8, #a8c0d8);
+  border: 1px solid #6080a8;
+  box-shadow: inset 1px 1px 0 #ddeefa, inset -1px -1px 0 #6080a0;
+  height: 15px;
+  display: block;
 }

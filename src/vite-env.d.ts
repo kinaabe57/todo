@@ -10,7 +10,8 @@ interface ClaudeResponse {
 interface ElectronAPI {
   getProjects: () => Promise<Project[]>;
   getArchivedProjects: () => Promise<Project[]>;
-  addProject: (name: string, description: string) => Promise<Project>;
+  addProject: (name: string, description: string, color: string) => Promise<Project>;
+  updateProject: (id: string, name: string, description: string, color: string) => Promise<Project>;
   archiveProject: (id: string) => Promise<Project>;
   restoreProject: (id: string) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
@@ -30,12 +31,14 @@ interface ElectronAPI {
   completeAllSubtasks: (todoId: string) => Promise<void>;
 
   getNotes: () => Promise<Note[]>;
-  addNote: (projectId: string, content: string) => Promise<Note>;
+  addNote: (projectId: string | null, content: string, title?: string | null) => Promise<Note>;
+  updateNote: (id: string, updates: { content?: string; title?: string | null; pinned?: boolean }) => Promise<Note>;
+  deleteNote: (id: string) => Promise<void>;
   
   getMessages: () => Promise<ChatMessage[]>;
   saveMessage: (message: ChatMessage) => Promise<void>;
   
-  sendToClaude: (message: string, projects: Project[], todos: Todo[], notes: Note[]) => Promise<ClaudeResponse>;
+  sendToClaude: (message: string, projects: Project[], todos: Todo[], notes: Note[], history: ChatMessage[]) => Promise<ClaudeResponse>;
   
   getSettings: () => Promise<AppSettings | null>;
   saveSettings: (settings: AppSettings) => Promise<void>;

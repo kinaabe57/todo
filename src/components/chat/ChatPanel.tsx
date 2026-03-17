@@ -10,6 +10,7 @@ interface ChatPanelProps {
   onAddTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<Todo>
   onMarkTodoAdded: (messageId: string, todoIndex: number) => void
   hasApiKey: boolean
+  onToggleCollapse: () => void
 }
 
 export default function ChatPanel({
@@ -18,7 +19,8 @@ export default function ChatPanel({
   onSendMessage,
   onAddTodo,
   onMarkTodoAdded,
-  hasApiKey
+  hasApiKey,
+  onToggleCollapse
 }: ChatPanelProps) {
   const [isLoading, setIsLoading] = useState(false)
 
@@ -39,17 +41,24 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="px-4 py-3 border-b border-slate-200">
-        <h2 className="text-lg font-medium text-slate-800 flex items-center gap-2">
-          <span className="text-xl">💬</span>
-          Chat with Claude
+    <div className="flex flex-col h-full bg-[#f0f4f8]">
+      <div className="px-3 py-2 mac-panel-header flex items-center justify-between">
+        <h2 className="text-xs font-bold text-[#1a2a3a] flex items-center gap-2 uppercase tracking-wide">
+          <span>💬</span>
+          Claude
+          {!hasApiKey && (
+            <span className="text-xs font-normal text-amber-700 ml-1 normal-case">— add API key in Settings</span>
+          )}
         </h2>
-        {!hasApiKey && (
-          <p className="text-sm text-amber-600 mt-1">
-            Add your Anthropic API key in Settings to start chatting
-          </p>
-        )}
+        <button
+          onClick={onToggleCollapse}
+          className="p-1 text-[#4a6080] hover:text-[#1a2a3a] hover:bg-[#b0c4d8] transition-colors"
+          title="Collapse chat"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
       </div>
 
       <MessageList

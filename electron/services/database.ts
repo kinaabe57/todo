@@ -91,6 +91,35 @@ export class DatabaseService {
         this.db.prepare('UPDATE projects SET position = ? WHERE id = ?').run(i, row.id)
       })
     } catch { /* column already exists */ }
+
+    // Migrate notes table to allow nullable projectId (standalone notes)
+    const notesInfo = this.db.prepare("PRAGMA table_info(notes)").all() as Array<{ name: string; notnull: number }>
+    const projectIdCol = notesInfo.find(c => c.name === 'projectId')
+    if (projectIdCol && projectIdCol.notnull === 1) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS notes_new (
+          id TEXT PRIMARY KEY,
+          projectId TEXT,
+          content TEXT NOT NULL,
+          createdAt TEXT NOT NULL
+        );
+        INSERT INTO notes_new SELECT id, projectId, content, createdAt FROM notes;
+        DROP TABLE notes;
+        ALTER TABLE notes_new RENAME TO notes;
+      `)
+    }
+
+    try {
+      this.db.exec(`ALTER TABLE notes ADD COLUMN title TEXT`)
+    } catch { /* already exists */ }
+
+    try {
+      this.db.exec(`ALTER TABLE notes ADD COLUMN pinned INTEGER DEFAULT 0`)
+    } catch { /* already exists */ }
+
+    try {
+      this.db.exec(`ALTER TABLE projects ADD COLUMN color TEXT DEFAULT '#64748b'`)
+    } catch { /* already exists */ }
   }
 
   // Projects
@@ -100,12 +129,14 @@ export class DatabaseService {
       id: string
       name: string
       description: string
+      color: string
       createdAt: string
       archived: number
       archivedAt: string | null
     }>
     return rows.map(row => ({
       ...row,
+      color: row.color || '#64748b',
       archived: Boolean(row.archived)
     }))
   }
@@ -116,28 +147,31 @@ export class DatabaseService {
       id: string
       name: string
       description: string
+      color: string
       createdAt: string
       archived: number
       archivedAt: string | null
     }>
     return rows.map(row => ({
       ...row,
+      color: row.color || '#64748b',
       archived: Boolean(row.archived)
     }))
   }
 
-  addProject(name: string, description: string): Project {
+  addProject(name: string, description: string, color: string): Project {
     const { pos } = this.db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM projects WHERE archived = 0').get() as { pos: number }
     const project: Project = {
       id: uuidv4(),
       name,
       description,
+      color,
       createdAt: new Date().toISOString(),
       archived: false,
       archivedAt: null
     }
-    const stmt = this.db.prepare('INSERT INTO projects (id, name, description, createdAt, archived, archivedAt, position) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    stmt.run(project.id, project.name, project.description, project.createdAt, 0, null, pos)
+    const stmt = this.db.prepare('INSERT INTO projects (id, name, description, color, createdAt, archived, archivedAt, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    stmt.run(project.id, project.name, project.description, project.color, project.createdAt, 0, null, pos)
     return project
   }
 
@@ -183,6 +217,14 @@ export class DatabaseService {
       ...row,
       archived: Boolean(row.archived)
     }
+  }
+
+  updateProject(id: string, name: string, description: string, color: string): Project {
+    this.db.prepare('UPDATE projects SET name = ?, description = ?, color = ? WHERE id = ?').run(name, description, color, id)
+    const row = this.db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as {
+      id: string; name: string; description: string; color: string; createdAt: string; archived: number; archivedAt: string | null
+    }
+    return { ...row, color: row.color || '#64748b', archived: Boolean(row.archived) }
   }
 
   deleteProject(id: string): void {
@@ -343,20 +385,44 @@ export class DatabaseService {
 
   // Notes
   getNotes(): Note[] {
-    const stmt = this.db.prepare('SELECT * FROM notes ORDER BY createdAt DESC')
-    return stmt.all() as Note[]
+    const rows = this.db.prepare('SELECT * FROM notes ORDER BY pinned DESC, createdAt DESC').all() as Array<{
+      id: string; projectId: string | null; title: string | null; content: string; createdAt: string; pinned: number
+    }>
+    return rows.map(row => ({ ...row, pinned: Boolean(row.pinned) }))
   }
 
-  addNote(projectId: string, content: string): Note {
+  addNote(projectId: string | null, content: string, title?: string | null): Note {
     const note: Note = {
       id: uuidv4(),
-      projectId,
+      projectId: projectId ?? null,
+      title: title ?? null,
       content,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      pinned: false
     }
-    const stmt = this.db.prepare('INSERT INTO notes (id, projectId, content, createdAt) VALUES (?, ?, ?, ?)')
-    stmt.run(note.id, note.projectId, note.content, note.createdAt)
+    this.db.prepare('INSERT INTO notes (id, projectId, title, content, createdAt, pinned) VALUES (?, ?, ?, ?, ?, ?)').run(
+      note.id, note.projectId, note.title, note.content, note.createdAt, 0
+    )
     return note
+  }
+
+  updateNote(id: string, updates: { content?: string; title?: string | null; pinned?: boolean }): Note {
+    const sets: string[] = []
+    const params: unknown[] = []
+    if (updates.content !== undefined) { sets.push('content = ?'); params.push(updates.content) }
+    if ('title' in updates) { sets.push('title = ?'); params.push(updates.title ?? null) }
+    if (updates.pinned !== undefined) { sets.push('pinned = ?'); params.push(updates.pinned ? 1 : 0) }
+    if (sets.length > 0) {
+      this.db.prepare(`UPDATE notes SET ${sets.join(', ')} WHERE id = ?`).run(...params, id)
+    }
+    const row = this.db.prepare('SELECT * FROM notes WHERE id = ?').get(id) as {
+      id: string; projectId: string | null; title: string | null; content: string; createdAt: string; pinned: number
+    }
+    return { ...row, pinned: Boolean(row.pinned) }
+  }
+
+  deleteNote(id: string): void {
+    this.db.prepare('DELETE FROM notes WHERE id = ?').run(id)
   }
 
   // Messages

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import ChatPanel from './components/chat/ChatPanel'
 import TodoPanel from './components/todos/TodoPanel'
+import NotesPanel from './components/notes/NotesPanel'
 import SettingsModal from './components/shared/SettingsModal'
 import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from './types'
 
@@ -9,6 +10,11 @@ interface UpdateInfo {
   latestVersion?: string
   phase?: 'available' | 'downloading' | 'downloaded' | 'error'
   percent?: number
+}
+
+const NOTE_SORT = (a: Note, b: Note) => {
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 }
 
 function App() {
@@ -22,6 +28,12 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+
+  // Panel widths (chat and notes); todos takes remaining space
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false)
+  const [chatWidth, setChatWidth] = useState(340)
+  const [notesWidth, setNotesWidth] = useState(300)
+  const [triggerNewNote, setTriggerNewNote] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -74,10 +86,42 @@ function App() {
     }
   }
 
-  const handleAddProject = async (name: string, description: string) => {
-    const newProject = await window.electronAPI.addProject(name, description)
+  // Panel resize
+  const startResize = (panel: 'chat' | 'notes') => (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = panel === 'chat' ? chatWidth : notesWidth
+
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - startX
+      const newWidth = Math.max(180, Math.min(560,
+        panel === 'chat' ? startWidth + delta : startWidth - delta
+      ))
+      panel === 'chat' ? setChatWidth(newWidth) : setNotesWidth(newWidth)
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleAddProject = async (name: string, description: string, color: string) => {
+    const newProject = await window.electronAPI.addProject(name, description, color)
     setProjects([...projects, newProject])
     return newProject
+  }
+
+  const handleUpdateProject = async (id: string, name: string, description: string, color: string) => {
+    const updated = await window.electronAPI.updateProject(id, name, description, color)
+    setProjects(prev => prev.map(p => p.id === id ? updated : p))
   }
 
   const handleReorderProjects = async (orderedIds: string[]) => {
@@ -155,10 +199,32 @@ function App() {
     setTodos(todos.map(t => t.id === todoId ? updated : t))
   }
 
-  const handleAddNote = async (projectId: string, content: string) => {
-    const newNote = await window.electronAPI.addNote(projectId, content)
-    setNotes([...notes, newNote])
+  const handleAddNote = async (projectId: string | null, content: string, title?: string | null) => {
+    const newNote = await window.electronAPI.addNote(projectId, content, title)
+    setNotes(prev => [newNote, ...prev].sort(NOTE_SORT))
     return newNote
+  }
+
+  const handleUpdateNote = async (id: string, updates: { content?: string; title?: string | null; pinned?: boolean }) => {
+    // Optimistic update for pin so the UI responds immediately
+    if (updates.pinned !== undefined) {
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned: updates.pinned! } : n).sort(NOTE_SORT))
+    }
+    try {
+      const updated = await window.electronAPI.updateNote(id, updates)
+      setNotes(prev => prev.map(n => n.id === id ? updated : n).sort(NOTE_SORT))
+    } catch (err) {
+      console.error('Failed to update note:', err)
+      // Revert optimistic pin update on failure
+      if (updates.pinned !== undefined) {
+        setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned: !updates.pinned } : n).sort(NOTE_SORT))
+      }
+    }
+  }
+
+  const handleDeleteNote = async (id: string) => {
+    await window.electronAPI.deleteNote(id)
+    setNotes(notes.filter(n => n.id !== id))
   }
 
   const handleSendMessage = async (content: string) => {
@@ -168,12 +234,12 @@ function App() {
       content,
       timestamp: new Date().toISOString()
     }
-    
+
     setMessages(prev => [...prev, userMessage])
     await window.electronAPI.saveMessage(userMessage)
 
     try {
-      const response = await window.electronAPI.sendToClaude(content, projects, todos, notes)
+      const response = await window.electronAPI.sendToClaude(content, projects, todos, notes, messages)
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -181,7 +247,7 @@ function App() {
         timestamp: new Date().toISOString(),
         suggestedTodos: response.suggestedTodos
       }
-      
+
       setMessages(prev => [...prev, assistantMessage])
       await window.electronAPI.saveMessage(assistantMessage)
       return assistantMessage
@@ -223,60 +289,58 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
-      {/* Header - draggable title bar */}
-      <header className="drag-region flex items-center justify-between pl-20 pr-6 py-2 bg-white border-b border-slate-200 shadow-sm">
-        <h1 className="text-base font-semibold text-slate-800">Smart Todo</h1>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col h-screen bg-[#b8c8d8]">
+      {/* Header */}
+      <header className="drag-region flex items-center justify-between pl-20 pr-6 py-1.5 mac-app-bar">
+        <h1 className="text-xs font-bold text-white tracking-widest uppercase">Smart Todo</h1>
+        <div className="flex items-center gap-1">
           {updateInfo?.hasUpdate && updateInfo.phase === 'available' && (
             <button
               onClick={() => window.electronAPI.downloadUpdate()}
-              className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"
+              className="no-drag flex items-center gap-1 px-2 py-1 text-xs text-white/90 hover:text-white hover:bg-white/10 transition-colors"
               title={`Update to ${updateInfo.latestVersion}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Update available
+              ▲ Update available
             </button>
           )}
           {updateInfo?.phase === 'downloading' && (
-            <span className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg">
-              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+            <span className="no-drag text-xs text-white/80 px-2">
               Downloading… {updateInfo.percent ?? 0}%
             </span>
           )}
           {updateInfo?.phase === 'downloaded' && (
             <button
               onClick={() => window.electronAPI.installUpdate()}
-              className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"
+              className="no-drag text-xs text-white/90 hover:text-white hover:bg-white/10 px-2 py-1 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Restart to update
+              ↻ Restart to update
             </button>
           )}
           {updateInfo?.phase === 'error' && (
             <button
               onClick={() => window.electronAPI.openReleasePage()}
-              className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors"
+              className="no-drag text-xs text-white/90 hover:text-white hover:bg-white/10 px-2 py-1 transition-colors"
               title="Download manually from GitHub"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Download manually
+              ⚠ Download manually
             </button>
           )}
           <button
+            onClick={() => setTriggerNewNote(true)}
+            className="no-drag flex items-center gap-1 px-2 py-1 text-xs text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            title="Quick note"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Note
+          </button>
+          <button
             onClick={() => setShowSettings(true)}
-            className="no-drag p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+            className="no-drag p-1.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
             title="Settings"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
@@ -284,22 +348,46 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Three-panel main area */}
       <main className="flex flex-1 overflow-hidden">
-        {/* Chat Panel - Left Side */}
-        <div className="w-1/2 border-r border-slate-200">
-          <ChatPanel
-            messages={messages}
-            projects={projects}
-            onSendMessage={handleSendMessage}
-            onAddTodo={handleAddTodo}
-            onMarkTodoAdded={handleMarkTodoAdded}
-            hasApiKey={!!settings.apiKey}
-          />
-        </div>
 
-        {/* Todo Panel - Right Side */}
-        <div className="w-1/2">
+        {/* Chat panel */}
+        {!isChatCollapsed && (
+          <div style={{ width: chatWidth }} className="flex-shrink-0 overflow-hidden">
+            <ChatPanel
+              messages={messages}
+              projects={projects}
+              onSendMessage={handleSendMessage}
+              onAddTodo={handleAddTodo}
+              onMarkTodoAdded={handleMarkTodoAdded}
+              hasApiKey={!!settings.apiKey}
+              onToggleCollapse={() => setIsChatCollapsed(true)}
+            />
+          </div>
+        )}
+
+        {/* Chat resize handle / collapse toggle */}
+        {isChatCollapsed ? (
+          <button
+            onClick={() => setIsChatCollapsed(false)}
+            className="flex-shrink-0 w-6 flex items-center justify-center border-r border-[#7090b0] bg-[#c8d4e0] hover:bg-[#b0c4d8] text-[#4a6080] hover:text-[#1a2a3a] transition-colors"
+            title="Expand chat"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        ) : (
+          <div
+            className="flex-shrink-0 w-1 cursor-col-resize bg-[#808080] hover:bg-primary-400 transition-colors relative group"
+            onMouseDown={startResize('chat')}
+          >
+            <div className="absolute inset-y-0 -left-1 -right-1" />
+          </div>
+        )}
+
+        {/* Todos panel — takes remaining space */}
+        <div className="flex-1 min-w-0 overflow-hidden">
           <TodoPanel
             projects={projects}
             archivedProjects={archivedProjects}
@@ -307,6 +395,7 @@ function App() {
             subtasks={subtasks}
             notes={notes}
             onAddProject={handleAddProject}
+            onUpdateProject={handleUpdateProject}
             onArchiveProject={handleArchiveProject}
             onRestoreProject={handleRestoreProject}
             onAddTodo={handleAddTodo}
@@ -322,9 +411,30 @@ function App() {
             celebrationEnabled={settings.celebrationSoundEnabled}
           />
         </div>
+
+        {/* Notes resize handle */}
+        <div
+          className="flex-shrink-0 w-1 cursor-col-resize bg-slate-200 hover:bg-primary-300 transition-colors relative"
+          onMouseDown={startResize('notes')}
+        >
+          <div className="absolute inset-y-0 -left-1 -right-1" />
+        </div>
+
+        {/* Notes panel */}
+        <div style={{ width: notesWidth }} className="flex-shrink-0 overflow-hidden">
+          <NotesPanel
+            notes={notes}
+            projects={projects}
+            onAddNote={handleAddNote}
+            onUpdateNote={handleUpdateNote}
+            onDeleteNote={handleDeleteNote}
+            triggerNewNote={triggerNewNote}
+            onTriggerNewNoteHandled={() => setTriggerNewNote(false)}
+          />
+        </div>
+
       </main>
 
-      {/* Settings Modal */}
       {showSettings && (
         <SettingsModal
           settings={settings}

@@ -52,7 +52,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false
     },
@@ -97,8 +97,12 @@ ipcMain.handle('get-archived-projects', () => {
   return db.getArchivedProjects()
 })
 
-ipcMain.handle('add-project', (_event, name: string, description: string) => {
-  return db.addProject(name, description)
+ipcMain.handle('add-project', (_event, name: string, description: string, color: string) => {
+  return db.addProject(name, description, color)
+})
+
+ipcMain.handle('update-project', (_event, id: string, name: string, description: string, color: string) => {
+  return db.updateProject(id, name, description, color)
 })
 
 ipcMain.handle('archive-project', (_event, id: string) => {
@@ -168,8 +172,16 @@ ipcMain.handle('get-notes', () => {
   return db.getNotes()
 })
 
-ipcMain.handle('add-note', (_event, projectId: string, content: string) => {
-  return db.addNote(projectId, content)
+ipcMain.handle('add-note', (_event, projectId: string | null, content: string, title?: string | null) => {
+  return db.addNote(projectId, content, title)
+})
+
+ipcMain.handle('update-note', (_event, id: string, updates: { content?: string; title?: string | null; pinned?: boolean }) => {
+  return db.updateNote(id, updates)
+})
+
+ipcMain.handle('delete-note', (_event, id: string) => {
+  return db.deleteNote(id)
 })
 
 // IPC Handlers for Messages
@@ -182,8 +194,8 @@ ipcMain.handle('save-message', (_event, message: ChatMessage) => {
 })
 
 // IPC Handler for Claude
-ipcMain.handle('send-to-claude', async (_event, message: string, projects: Project[], todos: Todo[], notes: Note[]) => {
-  return claude.sendMessage(message, projects, todos, notes)
+ipcMain.handle('send-to-claude', async (_event, message: string, projects: Project[], todos: Todo[], notes: Note[], history: ChatMessage[]) => {
+  return claude.sendMessage(message, projects, todos, notes, history)
 })
 
 // IPC Handlers for Settings

@@ -23,7 +23,8 @@ function ProjectDropdown({ projects, selectedId, onChange }: {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-[96px] text-xs border border-slate-200 rounded px-1.5 py-0.5 text-slate-600 bg-white flex items-center gap-1 hover:border-slate-300"
+        className="w-[96px] text-xs border border-[#8090b0] px-1.5 py-0.5 text-[#1a2a3a] bg-[#c8d4e0] flex items-center gap-1 hover:bg-[#b0c4d8]"
+        style={{ boxShadow: 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080' }}
       >
         <span className="flex-1 truncate">{selected?.name ?? '—'}</span>
         <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,12 +32,12 @@ function ProjectDropdown({ projects, selectedId, onChange }: {
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-50 min-w-[7rem]">
+        <div className="absolute top-full left-0 mt-0.5 bg-[#f0f4f8] border border-[#8090b0] z-50 min-w-[7rem]" style={{ boxShadow: '2px 2px 0 rgba(0,0,0,0.3)' }}>
           {projects.map(p => (
             <button
               key={p.id}
               onClick={() => { onChange(p.id); setOpen(false) }}
-              className={`w-full text-left text-xs px-2 py-1 hover:bg-slate-50 ${p.id === selectedId ? 'text-primary-600 font-medium' : 'text-slate-700'}`}
+              className={`w-full text-left text-xs px-2 py-1 hover:bg-[#dde8f4] ${p.id === selectedId ? 'text-primary-600 font-bold' : 'text-[#1a2a3a]'}`}
             >
               {p.name}
             </button>
@@ -78,7 +79,7 @@ function SuggestedTodoRow({
   )
 
   return (
-    <div className="flex items-center gap-2 text-sm bg-white/80 rounded-lg px-3 py-2">
+    <div className="flex items-center gap-2 text-xs bg-[#f0f4f8] border border-[#8090b0] px-3 py-2" style={{ boxShadow: 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080' }}>
       <span className="flex-1 text-slate-700">{text}</span>
       {added ? (
         <span className="text-xs text-green-600 font-medium">Added ✓</span>
@@ -93,7 +94,8 @@ function SuggestedTodoRow({
           )}
           <button
             onClick={() => onAddTodo(messageId, todoIndex, text, selectedProjectId)}
-            className="text-xs bg-primary-500 text-white px-2 py-1 rounded hover:bg-primary-600 transition-colors"
+            className="text-xs bg-primary-500 text-white px-2 py-1 hover:bg-primary-600 transition-colors"
+            style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.25), 1px 1px 0 rgba(0,0,0,0.3)' }}
             disabled={projects.length === 0 || !selectedProjectId}
             title={projects.length === 0 ? 'Create a project first' : 'Add to todo list'}
           >
@@ -115,10 +117,10 @@ export default function MessageList({ messages, projects, onAddTodo, isLoading }
   if (messages.length === 0 && !isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center text-slate-500">
+        <div className="text-center text-[#4a6080]">
           <div className="text-4xl mb-4">🤖</div>
-          <p className="text-lg font-medium">Start a conversation</p>
-          <p className="text-sm mt-2">
+          <p className="text-sm font-bold">Start a conversation</p>
+          <p className="text-xs mt-2">
             Ask Claude for todo suggestions, project advice, or help prioritizing your tasks.
           </p>
         </div>
@@ -134,11 +136,12 @@ export default function MessageList({ messages, projects, onAddTodo, isLoading }
           className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
           <div
-            className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+            className={`max-w-[85%] px-3 py-2 text-sm ${
               message.role === 'user'
                 ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 text-slate-800'
+                : 'bg-[#dde8f4] text-[#1a2a3a] border border-[#8090b0]'
             }`}
+          style={message.role === 'assistant' ? { boxShadow: 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080' } : { boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.2), 1px 1px 0 rgba(0,0,0,0.3)' }}
           >
             <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
 
@@ -167,14 +170,14 @@ export default function MessageList({ messages, projects, onAddTodo, isLoading }
 
       {isLoading && (
         <div className="flex justify-start">
-          <div className="bg-slate-100 rounded-2xl px-4 py-3">
+          <div className="bg-[#dde8f4] border border-[#8090b0] px-3 py-2" style={{ boxShadow: 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080' }}>
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className="w-2 h-2 bg-[#6080a0] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-[#6080a0] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-[#6080a0] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
-              <span className="text-sm text-slate-500">Claude is thinking...</span>
+              <span className="text-xs text-[#4a6080]">Claude is thinking...</span>
             </div>
           </div>
         </div>

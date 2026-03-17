@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from 'react'
+import { useState, useRef, KeyboardEvent } from 'react'
 import { Todo } from '../../types'
 
 interface AddTodoInputProps {
@@ -9,6 +9,7 @@ interface AddTodoInputProps {
 export default function AddTodoInput({ projectId, onAddTodo }: AddTodoInputProps) {
   const [text, setText] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const handleAdd = async () => {
     if (text.trim() && !isAdding) {
@@ -18,6 +19,7 @@ export default function AddTodoInput({ projectId, onAddTodo }: AddTodoInputProps
         setText('')
       } finally {
         setIsAdding(false)
+        setTimeout(() => inputRef.current?.focus(), 0)
       }
     }
   }
@@ -30,12 +32,13 @@ export default function AddTodoInput({ projectId, onAddTodo }: AddTodoInputProps
 
   return (
     <input
+      ref={inputRef}
       type="text"
       value={text}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}
       placeholder="+ Add a new todo..."
-      className="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      className="w-full px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 mac-inset"
       disabled={isAdding}
     />
   )
