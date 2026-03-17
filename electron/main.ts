@@ -20,6 +20,11 @@ let claude: ClaudeService
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
 autoUpdater.autoDownload = false
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'kinaabe57',
+  repo: 'todo'
+})
 
 function sendUpdateStatus(event: string, data?: unknown) {
   mainWindow?.webContents.send('update-status', { event, data })
