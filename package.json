@@ -47,6 +47,11 @@
   "build": {
     "appId": "com.smarttodo.app",
     "productName": "Smart Todo",
+    "publish": {
+      "provider": "github",
+      "owner": "kinaabe57",
+      "repo": "todo"
+    },
     "directories": {
       "output": "release"
     },
