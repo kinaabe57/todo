@@ -138,6 +138,17 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
               <br />
               Your data is stored locally on your computer.
             </p>
+            <div className="text-xs text-slate-400 bg-slate-50 rounded p-2 mb-3">
+              <p className="font-medium text-slate-500 mb-1">Installing a new version?</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>Download the DMG from GitHub and open it</li>
+                <li>Drag Smart Todo into Applications</li>
+                <li>Eject the DMG</li>
+                <li>If you see a "damaged" error, run in Terminal:<br />
+                  <code className="text-slate-500">xattr -cr "/Applications/Smart Todo.app"</code>
+                </li>
+              </ol>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
