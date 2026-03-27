@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { DatabaseService } from './database'
 import { Project, Todo, Note, ChatMessage } from '../../src/types'
+import { GranolaNote } from './granola'
 
 interface ClaudeResponse {
   content: string
@@ -147,6 +148,43 @@ Be concise and direct. Reference the user's actual notes and todos when relevant
       content,
       suggestedTodos: suggestedTodos.length > 0 ? suggestedTodos : undefined
     }
+  }
+
+  async extractMeetingTodos(
+    note: GranolaNote,
+    projects: Project[]
+  ): Promise<{ text: string; projectId?: string }[]> {
+    const apiKey = this.getApiKey()
+    const client = new Anthropic({ apiKey })
+
+    const meetingInfo = [
+      `Meeting: ${note.title || note.calendar_event?.title || 'Untitled'}`,
+      note.calendar_event?.start_time ? `Date: ${new Date(note.calendar_event.start_time).toLocaleString()}` : '',
+      note.attendees?.length ? `Attendees: ${note.attendees.map(a => a.name || a.email).join(', ')}` : '',
+      '',
+      'Summary:',
+      note.summary_markdown || note.summary_text || 'No summary available.'
+    ].filter(Boolean).join('\n')
+
+    const projectList = projects.map(p => `- ${p.name}${p.description ? `: ${p.description}` : ''}`).join('\n')
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: `You extract action items from meeting notes and match them to existing projects.
+
+Available projects:
+${projectList || 'No projects yet.'}
+
+Return ONLY a SUGGESTED_TODOS block with action items assigned to the best-matching project using **ProjectName**: prefix. If no project fits, omit the prefix. Max 8 todos. Only include clear, specific action items — not vague follow-ups.
+
+SUGGESTED_TODOS:
+• [todo text]`,
+      messages: [{ role: 'user', content: meetingInfo }]
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    return this.extractSuggestedTodos(text, projects).map(({ text, projectId }) => ({ text, projectId }))
   }
 
   private extractSuggestedTodos(

@@ -3,7 +3,8 @@ import ChatPanel from './components/chat/ChatPanel'
 import TodoPanel from './components/todos/TodoPanel'
 import NotesPanel from './components/notes/NotesPanel'
 import SettingsModal from './components/shared/SettingsModal'
-import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from './types'
+import MeetingTodosModal from './components/granola/MeetingTodosModal'
+import { Project, Todo, Note, ChatMessage, AppSettings, Subtask, GranolaMeetingReview } from './types'
 
 interface UpdateInfo {
   hasUpdate: boolean
@@ -28,6 +29,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [granolaPendingReviews, setGranolaPendingReviews] = useState<GranolaMeetingReview[]>([])
 
   // Panel widths (chat and notes); todos takes remaining space
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -54,8 +56,13 @@ function App() {
         setUpdateInfo(prev => ({ hasUpdate: false, ...prev, phase: 'error' }))
       }
     })
+    window.electronAPI.onGranolaMeetingTodos((review) => {
+      setGranolaPendingReviews(prev => [...prev, review])
+    })
+
     return () => {
       window.electronAPI.removeUpdateStatusListener()
+      window.electronAPI.removeGranolaListener()
     }
   }, [])
 
@@ -443,6 +450,15 @@ function App() {
           updateInfo={updateInfo}
           onDownloadUpdate={() => window.electronAPI.downloadUpdate()}
           onInstallUpdate={() => window.electronAPI.installUpdate()}
+        />
+      )}
+
+      {granolaPendingReviews.length > 0 && !showSettings && (
+        <MeetingTodosModal
+          review={granolaPendingReviews[0]}
+          projects={projects}
+          onAddTodo={handleAddTodo}
+          onDismiss={() => setGranolaPendingReviews(prev => prev.slice(1))}
         />
       )}
     </div>

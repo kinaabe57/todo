@@ -5,6 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { DatabaseService } from './services/database'
 import { ClaudeService } from './services/claude'
+import { GranolaService } from './services/granola'
 import { Project, Todo, Note, ChatMessage, AppSettings } from '../src/types'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -16,6 +17,8 @@ const CURRENT_VERSION = app.getVersion()
 let mainWindow: BrowserWindow | null = null
 let db: DatabaseService
 let claude: ClaudeService
+const granola = new GranolaService()
+let granolaInterval: ReturnType<typeof setInterval> | null = null
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
@@ -73,12 +76,58 @@ function createWindow() {
   }
 }
 
+async function pollGranola() {
+  try {
+    const settings = db.getSettings()
+    if (!settings?.granolaApiKey) return
+
+    const lastPolled = db.getGranolaLastPolled()
+    const now = new Date().toISOString()
+    const notes = await granola.fetchRecentNotes(settings.granolaApiKey, lastPolled ?? undefined)
+
+    for (const summary of notes.slice(0, 5)) {
+      if (db.isGranolaNoteProcessed(summary.id)) continue
+      db.markGranolaNoteProcessed(summary.id)
+
+      try {
+        const detail = await granola.getNoteDetail(settings.granolaApiKey, summary.id)
+        if (!detail.summary_text && !detail.summary_markdown) continue
+
+        const projects = db.getProjects()
+        const todos = await claude.extractMeetingTodos(detail, projects)
+        if (todos.length === 0) continue
+
+        mainWindow?.webContents.send('granola-meeting-todos', {
+          meetingId: detail.id,
+          meetingTitle: detail.title || detail.calendar_event?.title || 'Meeting',
+          todos: todos.map(t => ({ ...t, added: false }))
+        })
+      } catch (err) {
+        console.error('Failed to process Granola note:', summary.id, err)
+      }
+    }
+
+    db.setGranolaLastPolled(now)
+  } catch (err) {
+    console.error('Granola poll failed:', err)
+  }
+}
+
+function startGranolaPoll() {
+  if (granolaInterval) clearInterval(granolaInterval)
+  const settings = db.getSettings()
+  if (!settings?.granolaApiKey) return
+  pollGranola()
+  granolaInterval = setInterval(pollGranola, 5 * 60 * 1000)
+}
+
 app.whenReady().then(() => {
   const userDataPath = app.getPath('userData')
   db = new DatabaseService(path.join(userDataPath, 'smart-todo.db'))
   claude = new ClaudeService(db)
 
   createWindow()
+  startGranolaPoll()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -209,7 +258,8 @@ ipcMain.handle('get-settings', () => {
 })
 
 ipcMain.handle('save-settings', (_event, settings: AppSettings) => {
-  return db.saveSettings(settings)
+  db.saveSettings(settings)
+  startGranolaPoll()
 })
 
 // IPC Handlers for Updates

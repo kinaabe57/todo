@@ -54,6 +54,11 @@ export class DatabaseService {
         value TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS granola_processed_notes (
+        noteId TEXT PRIMARY KEY,
+        processedAt TEXT NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS subtasks (
         id TEXT PRIMARY KEY,
         todoId TEXT NOT NULL,
@@ -450,6 +455,25 @@ export class DatabaseService {
       message.timestamp,
       message.suggestedTodos ? JSON.stringify(message.suggestedTodos) : null
     )
+  }
+
+  // Granola tracking
+  isGranolaNoteProcessed(noteId: string): boolean {
+    const row = this.db.prepare('SELECT noteId FROM granola_processed_notes WHERE noteId = ?').get(noteId)
+    return !!row
+  }
+
+  markGranolaNoteProcessed(noteId: string): void {
+    this.db.prepare('INSERT OR IGNORE INTO granola_processed_notes (noteId, processedAt) VALUES (?, ?)').run(noteId, new Date().toISOString())
+  }
+
+  getGranolaLastPolled(): string | null {
+    const row = this.db.prepare('SELECT value FROM settings WHERE key = ?').get('granola_last_polled') as { value: string } | undefined
+    return row?.value ?? null
+  }
+
+  setGranolaLastPolled(timestamp: string): void {
+    this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('granola_last_polled', timestamp)
   }
 
   // Settings

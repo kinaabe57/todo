@@ -55,4 +55,17 @@ export interface SuggestedTodo {
 export interface AppSettings {
   apiKey: string;
   celebrationSoundEnabled: boolean;
+  granolaApiKey?: string;
+}
+
+export interface GranolaSuggestedTodo {
+  text: string;
+  projectId?: string;
+  added: boolean;
+}
+
+export interface GranolaMeetingReview {
+  meetingId: string;
+  meetingTitle: string;
+  todos: GranolaSuggestedTodo[];
 }

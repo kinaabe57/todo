@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from './types'
+import { Project, Todo, Note, ChatMessage, AppSettings, Subtask, GranolaMeetingReview } from './types'
 
 interface ClaudeResponse {
   content: string;
@@ -50,6 +50,9 @@ interface ElectronAPI {
   getAppVersion: () => Promise<string>;
   onUpdateStatus: (callback: (payload: { event: string; data?: unknown }) => void) => void;
   removeUpdateStatusListener: () => void;
+
+  onGranolaMeetingTodos: (callback: (review: GranolaMeetingReview) => void) => void;
+  removeGranolaListener: () => void;
 }
 
 declare global {

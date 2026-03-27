@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { ChatMessage, AppSettings, Project, Todo, Note } from '../src/types'
+import { ChatMessage, AppSettings, Project, Todo, Note, GranolaMeetingReview } from '../src/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Projects
@@ -53,5 +53,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   onUpdateStatus: (cb: (payload: { event: string; data?: unknown }) => void) =>
     ipcRenderer.on('update-status', (_e, payload) => cb(payload)),
-  removeUpdateStatusListener: () => ipcRenderer.removeAllListeners('update-status')
+  removeUpdateStatusListener: () => ipcRenderer.removeAllListeners('update-status'),
+
+  // Granola
+  onGranolaMeetingTodos: (cb: (review: GranolaMeetingReview) => void) =>
+    ipcRenderer.on('granola-meeting-todos', (_e, review) => cb(review)),
+  removeGranolaListener: () => ipcRenderer.removeAllListeners('granola-meeting-todos')
 })
