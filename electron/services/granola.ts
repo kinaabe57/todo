@@ -1,5 +1,11 @@
 const GRANOLA_API_BASE = 'https://public-api.granola.ai'
 
+export function extractSummary(text: string | null, maxSentences = 6): string {
+  if (!text) return ''
+  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) ?? []
+  return sentences.slice(0, maxSentences).join('').trim()
+}
+
 export interface GranolaNoteSummary {
   id: string
   title: string | null

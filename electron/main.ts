@@ -5,7 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { DatabaseService } from './services/database'
 import { ClaudeService } from './services/claude'
-import { GranolaService } from './services/granola'
+import { GranolaService, extractSummary } from './services/granola'
 import { Project, Todo, Note, ChatMessage, AppSettings } from '../src/types'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -97,11 +97,16 @@ async function pollGranola() {
         const todos = await claude.extractMeetingTodos(detail, projects)
         if (todos.length === 0) continue
 
-        mainWindow?.webContents.send('granola-meeting-todos', {
+        const review = {
+          id: detail.id,
           meetingId: detail.id,
           meetingTitle: detail.title || detail.calendar_event?.title || 'Meeting',
+          meetingSummary: extractSummary(detail.summary_text),
+          createdAt: new Date().toISOString(),
           todos: todos.map(t => ({ ...t, added: false }))
-        })
+        }
+        db.addGranolaPendingReview(review)
+        mainWindow?.webContents.send('granola-reviews-updated')
       } catch (err) {
         console.error('Failed to process Granola note:', summary.id, err)
       }
@@ -190,10 +195,6 @@ ipcMain.handle('toggle-todo', (_event, id: string, completed: boolean) => {
 
 ipcMain.handle('delete-todo', (_event, id: string) => {
   return db.deleteTodo(id)
-})
-
-ipcMain.handle('update-todo-priority', (_event, id: string, priority: string) => {
-  return db.updateTodoPriority(id, priority as 'high' | 'medium' | 'low')
 })
 
 ipcMain.handle('move-todo', (_event, id: string, newProjectId: string) => {
@@ -287,4 +288,13 @@ ipcMain.handle('open-release-page', () => {
 
 ipcMain.handle('get-app-version', () => {
   return CURRENT_VERSION
+})
+
+// IPC Handlers for Granola
+ipcMain.handle('get-granola-reviews', () => {
+  return db.getGranolaPendingReviews()
+})
+
+ipcMain.handle('dismiss-granola-review', (_event, id: string) => {
+  db.dismissGranolaPendingReview(id)
 })

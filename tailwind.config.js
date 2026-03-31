@@ -44,6 +44,13 @@ export default {
       fontFamily: {
         sans: ['Geneva', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
       },
+      fontSize: {
+        'xs':   ['14px', { lineHeight: '1.5' }],
+        'sm':   ['16px', { lineHeight: '1.5' }],
+        'base': ['18px', { lineHeight: '1.5' }],
+        'lg':   ['21px', { lineHeight: '1.4' }],
+        'xl':   ['24px', { lineHeight: '1.4' }],
+      },
       boxShadow: {
         'sm':  '1px 1px 0 rgba(0,0,0,0.2)',
         DEFAULT: '2px 2px 0 rgba(0,0,0,0.25)',

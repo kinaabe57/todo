@@ -177,15 +177,18 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
               Your data is stored locally on your computer.
             </p>
             <div className="text-xs text-slate-400 bg-slate-50 rounded p-2 mb-3">
-              <p className="font-medium text-slate-500 mb-1">Installing a new version?</p>
-              <ol className="list-decimal list-inside space-y-0.5">
-                <li>Download the DMG from GitHub and open it</li>
-                <li>Drag Smart Todo into Applications</li>
+              <p className="font-medium text-slate-500 mb-1">How to update the app</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Click <span className="text-slate-500 font-medium">Check for updates</span> below — if an update is available, download it</li>
+                <li>Or go to GitHub releases and download the latest <code className="text-slate-500">.dmg</code> file</li>
+                <li>Open the DMG, drag <span className="text-slate-500 font-medium">Smart Todo</span> into Applications (replace the existing one)</li>
                 <li>Eject the DMG</li>
-                <li>If you see a "damaged" error, run in Terminal:<br />
-                  <code className="text-slate-500">xattr -cr "/Applications/Smart Todo.app"</code>
+                <li>Open Terminal and run:<br />
+                  <code className="text-slate-500 select-all">xattr -cr "/Applications/Smart Todo.app"</code>
                 </li>
+                <li>Open Smart Todo from Applications</li>
               </ol>
+              <p className="mt-1.5 text-slate-400">Step 5 is required every time — macOS flags unsigned apps as damaged.</p>
             </div>
             <div className="flex items-center gap-2">
               <button

@@ -208,23 +208,105 @@ function insertCheckboxAtCursor(editor: HTMLDivElement) {
   sel.addRange(newRange)
 }
 
-// Paste handler — intercepts image data and converts to embedded <img>
-function handleImagePaste(e: React.ClipboardEvent<HTMLDivElement>): boolean {
-  const imageItem = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'))
-  if (!imageItem) return false
-  e.preventDefault()
-  const file = imageItem.getAsFile()
-  if (!file) return true
-  const reader = new FileReader()
-  reader.onload = ev => {
-    const dataUrl = ev.target?.result as string
-    document.execCommand(
-      'insertHTML', false,
-      `<img src="${dataUrl}" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:4px 0">`
-    )
+// Strips pasted HTML to only allowed formatting (bold/italic/underline/lists)
+function sanitizePastedHTML(html: string): string {
+  const div = document.createElement('div')
+  div.innerHTML = html
+
+  function processNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? ''
+    if (node.nodeType !== Node.ELEMENT_NODE) return ''
+    const el = node as HTMLElement
+    const tag = el.tagName.toLowerCase()
+    const children = Array.from(el.childNodes).map(processNode).join('')
+    if (['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'section', 'article'].includes(tag))
+      return `<div>${children}</div>`
+    if (tag === 'br') return '<br>'
+    if (['ul', 'ol'].includes(tag)) return `<ul>${children}</ul>`
+    if (tag === 'li') return `<li>${children}</li>`
+    if (['b', 'strong'].includes(tag)) return `<strong>${children}</strong>`
+    if (['i', 'em'].includes(tag)) return `<em>${children}</em>`
+    if (tag === 'u') return `<u>${children}</u>`
+    if (['span', 'font', 'a', 'td', 'th'].includes(tag)) {
+      const s = el.style
+      let out = children
+      if (s.fontWeight === 'bold' || Number(s.fontWeight) >= 700) out = `<strong>${out}</strong>`
+      if (s.fontStyle === 'italic') out = `<em>${out}</em>`
+      if (s.textDecoration?.includes('underline')) out = `<u>${out}</u>`
+      return out
+    }
+    return children
   }
-  reader.readAsDataURL(file)
-  return true
+
+  return Array.from(div.childNodes).map(processNode).join('')
+}
+
+// Strips all inline formatting from current selection back to plain text
+function clearFormatting(editor: HTMLDivElement) {
+  editor.focus()
+  const sel = window.getSelection()
+  if (sel && sel.rangeCount && sel.getRangeAt(0).collapsed) {
+    // Nothing selected — select all
+    const r = document.createRange()
+    r.selectNodeContents(editor)
+    sel.removeAllRanges()
+    sel.addRange(r)
+  }
+  document.execCommand('removeFormat', false)
+  editor.querySelectorAll('font').forEach(font => {
+    while (font.firstChild) font.parentNode?.insertBefore(font.firstChild, font)
+    font.remove()
+  })
+  editor.querySelectorAll('[style]').forEach(el => (el as HTMLElement).removeAttribute('style'))
+}
+
+// Applies a font size to the current selection
+const FONT_SIZES = [
+  { label: 'S', px: 11, legacy: '1' },
+  { label: 'M', px: 13, legacy: '2' },
+  { label: 'L', px: 16, legacy: '3' },
+  { label: 'XL', px: 20, legacy: '5' },
+]
+
+function applyFontSize(editor: HTMLDivElement, legacy: string, px: number) {
+  editor.focus()
+  document.execCommand('fontSize', false, legacy)
+  editor.querySelectorAll('font[size]').forEach(font => {
+    const span = document.createElement('span')
+    span.style.fontSize = `${px}px`
+    while (font.firstChild) span.appendChild(font.firstChild)
+    font.parentNode?.replaceChild(span, font)
+  })
+}
+
+// Paste handler — sanitizes HTML and handles image data
+function handlePaste(e: React.ClipboardEvent<HTMLDivElement>, markDirty?: () => void): boolean {
+  // Image paste
+  const imageItem = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'))
+  if (imageItem) {
+    e.preventDefault()
+    const file = imageItem.getAsFile()
+    if (!file) return true
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const dataUrl = ev.target?.result as string
+      document.execCommand('insertHTML', false,
+        `<img src="${dataUrl}" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:4px 0">`)
+      markDirty?.()
+    }
+    reader.readAsDataURL(file)
+    return true
+  }
+  // HTML paste — sanitize
+  const html = e.clipboardData.getData('text/html')
+  if (html) {
+    e.preventDefault()
+    const clean = sanitizePastedHTML(html)
+    document.execCommand('insertHTML', false, clean)
+    markDirty?.()
+    return true
+  }
+  return false
 }
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
@@ -235,9 +317,11 @@ interface NoteToolbarProps {
   onUnderline: (e: React.MouseEvent) => void
   onBulletList: (e: React.MouseEvent) => void
   onCheckbox: (e: React.MouseEvent) => void
+  onClearFormat: (e: React.MouseEvent) => void
+  onFontSize: (legacy: string, px: number) => void
 }
 
-function NoteToolbar({ onBold, onItalic, onUnderline, onBulletList, onCheckbox }: NoteToolbarProps) {
+function NoteToolbar({ onBold, onItalic, onUnderline, onBulletList, onCheckbox, onClearFormat, onFontSize }: NoteToolbarProps) {
   return (
     <div className="flex items-center gap-0.5 pb-2 border-b border-slate-100">
       <ToolBtn title="Bold (⌘B)" onMouseDown={onBold}><strong className="text-xs">B</strong></ToolBtn>
@@ -259,6 +343,24 @@ function NoteToolbar({ onBold, onItalic, onUnderline, onBulletList, onCheckbox }
           <rect x="3" y="3" width="18" height="18" rx="3" strokeWidth="2" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12l3 3 5-5" />
         </svg>
+      </ToolBtn>
+      <div className="w-px h-4 bg-slate-200 mx-1" />
+      <select
+        onMouseDown={e => e.stopPropagation()}
+        onChange={e => {
+          const opt = FONT_SIZES.find(s => s.label === e.target.value)
+          if (opt) onFontSize(opt.legacy, opt.px)
+          e.target.value = ''
+        }}
+        defaultValue=""
+        title="Font size"
+        className="h-6 text-[11px] text-slate-500 bg-transparent border border-slate-200 rounded px-0.5 cursor-pointer hover:border-slate-400 focus:outline-none"
+      >
+        <option value="" disabled>Aa</option>
+        {FONT_SIZES.map(s => <option key={s.label} value={s.label}>{s.label}</option>)}
+      </select>
+      <ToolBtn title="Clear formatting" onMouseDown={onClearFormat}>
+        <span className="text-[10px] font-mono leading-none">Tx</span>
       </ToolBtn>
     </div>
   )
@@ -312,11 +414,13 @@ function NewNoteCard({ onSave, onCancel }: NewNoteCardProps) {
   }
 
   const toolbar: NoteToolbarProps = {
-    onBold:       (e) => { e.preventDefault(); document.execCommand('bold', false) },
-    onItalic:     (e) => { e.preventDefault(); document.execCommand('italic', false) },
-    onUnderline:  (e) => { e.preventDefault(); document.execCommand('underline', false) },
-    onBulletList: (e) => { e.preventDefault(); if (editorRef.current) insertBulletAtCursor(editorRef.current) },
-    onCheckbox:   (e) => { e.preventDefault(); if (editorRef.current) insertCheckboxAtCursor(editorRef.current) },
+    onBold:        (e) => { e.preventDefault(); document.execCommand('bold', false) },
+    onItalic:      (e) => { e.preventDefault(); document.execCommand('italic', false) },
+    onUnderline:   (e) => { e.preventDefault(); document.execCommand('underline', false) },
+    onBulletList:  (e) => { e.preventDefault(); if (editorRef.current) insertBulletAtCursor(editorRef.current) },
+    onCheckbox:    (e) => { e.preventDefault(); if (editorRef.current) insertCheckboxAtCursor(editorRef.current) },
+    onClearFormat: (e) => { e.preventDefault(); if (editorRef.current) clearFormatting(editorRef.current) },
+    onFontSize:    (legacy, px) => { if (editorRef.current) applyFontSize(editorRef.current, legacy, px) },
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -360,7 +464,7 @@ function NewNoteCard({ onSave, onCancel }: NewNoteCardProps) {
           suppressContentEditableWarning
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          onPaste={(e) => handleImagePaste(e)}
+          onPaste={(e) => handlePaste(e)}
           data-placeholder="Write your note…"
           className="text-xs text-[#1a2a3a] min-h-[80px] focus:outline-none leading-relaxed note-editor mt-2"
         />
@@ -421,14 +525,13 @@ function NoteCard({ note, projectName, onUpdate, onDelete }: NoteCardProps) {
   }, [saveAndClose])
 
   const toolbar: NoteToolbarProps = {
-    onBold:       (e) => { e.preventDefault(); document.execCommand('bold', false); isDirtyRef.current = true },
-    onItalic:     (e) => { e.preventDefault(); document.execCommand('italic', false); isDirtyRef.current = true },
-    onUnderline:  (e) => { e.preventDefault(); document.execCommand('underline', false); isDirtyRef.current = true },
-    onBulletList: (e) => { e.preventDefault(); if (editorRef.current) { insertBulletAtCursor(editorRef.current); isDirtyRef.current = true } },
-    onCheckbox:   (e) => {
-      e.preventDefault()
-      if (editorRef.current) { insertCheckboxAtCursor(editorRef.current); isDirtyRef.current = true }
-    },
+    onBold:        (e) => { e.preventDefault(); document.execCommand('bold', false); isDirtyRef.current = true },
+    onItalic:      (e) => { e.preventDefault(); document.execCommand('italic', false); isDirtyRef.current = true },
+    onUnderline:   (e) => { e.preventDefault(); document.execCommand('underline', false); isDirtyRef.current = true },
+    onBulletList:  (e) => { e.preventDefault(); if (editorRef.current) { insertBulletAtCursor(editorRef.current); isDirtyRef.current = true } },
+    onCheckbox:    (e) => { e.preventDefault(); if (editorRef.current) { insertCheckboxAtCursor(editorRef.current); isDirtyRef.current = true } },
+    onClearFormat: (e) => { e.preventDefault(); if (editorRef.current) { clearFormatting(editorRef.current); isDirtyRef.current = true } },
+    onFontSize:    (legacy, px) => { if (editorRef.current) { applyFontSize(editorRef.current, legacy, px); isDirtyRef.current = true } },
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -526,7 +629,7 @@ function NoteCard({ note, projectName, onUpdate, onDelete }: NoteCardProps) {
             suppressContentEditableWarning
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            onPaste={(e) => { if (handleImagePaste(e)) isDirtyRef.current = true }}
+            onPaste={(e) => handlePaste(e, () => { isDirtyRef.current = true })}
             data-placeholder="Write your note…"
             className="text-xs text-[#1a2a3a] min-h-[60px] focus:outline-none leading-relaxed note-editor mt-2"
           />

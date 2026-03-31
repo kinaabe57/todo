@@ -25,8 +25,6 @@ import { Project, Todo, Note, Subtask } from '../../types'
 import ProjectSection from './ProjectSection'
 import AddProjectModal from './AddProjectModal'
 
-const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
-
 interface ArchivedProjectCardProps {
   project: Project
   todos: Todo[]
@@ -139,7 +137,6 @@ interface SortableProjectSectionProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
-  onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
   onEditProject: (project: Project) => void
@@ -198,7 +195,6 @@ interface TodoPanelProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
-  onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onMoveTodo: (todoId: string, newProjectId: string) => Promise<void>
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
@@ -221,7 +217,6 @@ export default function TodoPanel({
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
-  onUpdateTodoPriority,
   onAddNote,
   onMoveTodo,
   onAddSubtask,
@@ -249,7 +244,6 @@ export default function TodoPanel({
       const local = localMap.get(t.id)
       return local && (
         local.completed !== t.completed ||
-        local.priority !== t.priority ||
         local.projectId !== t.projectId
       )
     })
@@ -352,7 +346,6 @@ export default function TodoPanel({
     } else if (!overId.startsWith('project-')) {
       const projectPendingTodos = localTodos
         .filter(t => t.projectId === targetProjectId && !t.completed)
-        .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
 
       const oldIndex = projectPendingTodos.findIndex(t => t.id === activeTodoId)
       const newIndex = projectPendingTodos.findIndex(t => t.id === overId)
@@ -439,7 +432,6 @@ export default function TodoPanel({
                   onAddTodo={onAddTodo}
                   onToggleTodo={onToggleTodo}
                   onDeleteTodo={onDeleteTodo}
-                  onUpdateTodoPriority={onUpdateTodoPriority}
                   onAddNote={onAddNote}
                   onArchiveProject={onArchiveProject}
                   onEditProject={setEditingProject}

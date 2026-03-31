@@ -3,7 +3,7 @@ import ChatPanel from './components/chat/ChatPanel'
 import TodoPanel from './components/todos/TodoPanel'
 import NotesPanel from './components/notes/NotesPanel'
 import SettingsModal from './components/shared/SettingsModal'
-import MeetingTodosModal from './components/granola/MeetingTodosModal'
+import GranolaInbox from './components/granola/GranolaInbox'
 import { Project, Todo, Note, ChatMessage, AppSettings, Subtask, GranolaMeetingReview } from './types'
 
 interface UpdateInfo {
@@ -30,6 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [granolaPendingReviews, setGranolaPendingReviews] = useState<GranolaMeetingReview[]>([])
+  const [showGranolaInbox, setShowGranolaInbox] = useState(false)
 
   // Panel widths (chat and notes); todos takes remaining space
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -56,8 +57,8 @@ function App() {
         setUpdateInfo(prev => ({ hasUpdate: false, ...prev, phase: 'error' }))
       }
     })
-    window.electronAPI.onGranolaMeetingTodos((review) => {
-      setGranolaPendingReviews(prev => [...prev, review])
+    window.electronAPI.onGranolaReviewsUpdated(() => {
+      window.electronAPI.getGranolaReviews().then(setGranolaPendingReviews)
     })
 
     return () => {
@@ -68,14 +69,15 @@ function App() {
 
   const loadData = async () => {
     try {
-      const [projectsData, archivedProjectsData, todosData, subtasksData, notesData, messagesData, settingsData] = await Promise.all([
+      const [projectsData, archivedProjectsData, todosData, subtasksData, notesData, messagesData, settingsData, granolaReviews] = await Promise.all([
         window.electronAPI.getProjects(),
         window.electronAPI.getArchivedProjects(),
         window.electronAPI.getTodos(),
         window.electronAPI.getAllSubtasks(),
         window.electronAPI.getNotes(),
         window.electronAPI.getMessages(),
-        window.electronAPI.getSettings()
+        window.electronAPI.getSettings(),
+        window.electronAPI.getGranolaReviews()
       ])
       setProjects(projectsData)
       setArchivedProjects(archivedProjectsData)
@@ -83,6 +85,7 @@ function App() {
       setSubtasks(subtasksData)
       setNotes(notesData)
       setMessages(messagesData)
+      setGranolaPendingReviews(granolaReviews)
       if (settingsData) {
         setSettings(settingsData)
       }
@@ -196,11 +199,6 @@ function App() {
     setTodos(todos.filter(t => t.id !== id))
   }
 
-  const handleUpdateTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
-    const updated = await window.electronAPI.updateTodoPriority(id, priority)
-    setTodos(todos.map(t => t.id === id ? updated : t))
-  }
-
   const handleMoveTodo = async (todoId: string, newProjectId: string) => {
     const updated = await window.electronAPI.moveTodo(todoId, newProjectId)
     setTodos(todos.map(t => t.id === todoId ? updated : t))
@@ -276,6 +274,11 @@ function App() {
     setShowSettings(false)
   }
 
+  const handleDismissGranolaReview = async (id: string) => {
+    await window.electronAPI.dismissGranolaReview(id)
+    setGranolaPendingReviews(prev => prev.filter(r => r.id !== id))
+  }
+
   const handleMarkTodoAdded = (messageId: string, todoIndex: number) => {
     setMessages(prev => prev.map(msg => {
       if (msg.id === messageId && msg.suggestedTodos) {
@@ -330,6 +333,20 @@ function App() {
               title="Download manually from GitHub"
             >
               ⚠ Download manually
+            </button>
+          )}
+          {granolaPendingReviews.length > 0 && (
+            <button
+              onClick={() => setShowGranolaInbox(true)}
+              className="no-drag flex items-center gap-1.5 px-2 py-1 text-xs text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+              title="Meeting inbox"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="bg-white/20 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                {granolaPendingReviews.length}
+              </span>
             </button>
           )}
           <button
@@ -408,7 +425,6 @@ function App() {
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             onDeleteTodo={handleDeleteTodo}
-            onUpdateTodoPriority={handleUpdateTodoPriority}
             onAddNote={handleAddNote}
             onMoveTodo={handleMoveTodo}
             onAddSubtask={handleAddSubtask}
@@ -453,12 +469,13 @@ function App() {
         />
       )}
 
-      {granolaPendingReviews.length > 0 && !showSettings && (
-        <MeetingTodosModal
-          review={granolaPendingReviews[0]}
+      {showGranolaInbox && (
+        <GranolaInbox
+          reviews={granolaPendingReviews}
           projects={projects}
           onAddTodo={handleAddTodo}
-          onDismiss={() => setGranolaPendingReviews(prev => prev.slice(1))}
+          onDismiss={handleDismissGranolaReview}
+          onClose={() => setShowGranolaInbox(false)}
         />
       )}
     </div>

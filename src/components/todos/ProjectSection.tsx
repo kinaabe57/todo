@@ -16,14 +16,13 @@ interface SortableTodoItemProps {
   subtasks: Subtask[]
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
-  onUpdatePriority: (id: string, priority: 'high' | 'medium' | 'low') => void
   celebrationEnabled: boolean
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
   onToggleSubtask: (id: string) => Promise<Subtask | undefined>
   onDeleteSubtask: (id: string) => Promise<void>
 }
 
-function SortableTodoItem({ todo, subtasks, onToggle, onDelete, onUpdatePriority, celebrationEnabled, onAddSubtask, onToggleSubtask, onDeleteSubtask }: SortableTodoItemProps) {
+function SortableTodoItem({ todo, subtasks, onToggle, onDelete, celebrationEnabled, onAddSubtask, onToggleSubtask, onDeleteSubtask }: SortableTodoItemProps) {
   const {
     attributes,
     listeners,
@@ -47,7 +46,6 @@ function SortableTodoItem({ todo, subtasks, onToggle, onDelete, onUpdatePriority
         subtasks={subtasks}
         onToggle={onToggle}
         onDelete={onDelete}
-        onUpdatePriority={onUpdatePriority}
         celebrationEnabled={celebrationEnabled}
         dragHandleProps={{ ...attributes, ...listeners }}
         onAddSubtask={onAddSubtask}
@@ -66,7 +64,6 @@ interface ProjectSectionProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
-  onUpdateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<void>
   onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
   onEditProject?: (project: Project) => void
@@ -79,8 +76,6 @@ interface ProjectSectionProps {
   isDraggingProject?: boolean
 }
 
-const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
-
 export default function ProjectSection({
   project,
   todos,
@@ -89,7 +84,6 @@ export default function ProjectSection({
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
-  onUpdateTodoPriority,
   onAddNote,
   onArchiveProject,
   onEditProject,
@@ -111,9 +105,7 @@ export default function ProjectSection({
     data: { projectId: project.id }
   })
 
-  const pendingTodos = todos
-    .filter(t => !t.completed)
-    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+  const pendingTodos = todos.filter(t => !t.completed)
   const completedTodos = todos.filter(t => t.completed)
 
   // Show drop highlight only when dragging a todo from a different project (not a project card)
@@ -267,7 +259,6 @@ export default function ProjectSection({
                     subtasks={subtasks.filter(s => s.todoId === todo.id)}
                     onToggle={onToggleTodo}
                     onDelete={onDeleteTodo}
-                    onUpdatePriority={onUpdateTodoPriority}
                     celebrationEnabled={celebrationEnabled}
                     onAddSubtask={onAddSubtask}
                     onToggleSubtask={onToggleSubtask}
@@ -305,7 +296,6 @@ export default function ProjectSection({
                       subtasks={subtasks.filter(s => s.todoId === todo.id)}
                       onToggle={onToggleTodo}
                       onDelete={onDeleteTodo}
-                      onUpdatePriority={onUpdateTodoPriority}
                       celebrationEnabled={celebrationEnabled}
                       onAddSubtask={onAddSubtask}
                       onToggleSubtask={onToggleSubtask}

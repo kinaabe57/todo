@@ -3,24 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Todo, Subtask } from '../../types'
 import CelebrationEffect from '../shared/CelebrationEffect'
 
-const PRIORITY_CYCLE = { high: 'medium', medium: 'low', low: 'high' } as const
-const PRIORITY_COLOR = {
-  high: 'bg-red-400',
-  medium: 'bg-amber-400',
-  low: 'bg-slate-300'
-}
-const PRIORITY_LABEL = {
-  high: 'High priority',
-  medium: 'Medium priority',
-  low: 'Low priority'
-}
-
 interface TodoItemProps {
   todo: Todo
   subtasks: Subtask[]
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
-  onUpdatePriority: (id: string, priority: 'high' | 'medium' | 'low') => void
   celebrationEnabled: boolean
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
@@ -28,7 +15,7 @@ interface TodoItemProps {
   onDeleteSubtask: (id: string) => Promise<void>
 }
 
-export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdatePriority, celebrationEnabled, dragHandleProps, onAddSubtask, onToggleSubtask, onDeleteSubtask }: TodoItemProps) {
+export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrationEnabled, dragHandleProps, onAddSubtask, onToggleSubtask, onDeleteSubtask }: TodoItemProps) {
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationPos, setCelebrationPos] = useState({ x: 0, y: 0 })
   const [isAnimating, setIsAnimating] = useState(false)
@@ -122,15 +109,6 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdateP
             </button>
           ) : (
             <span className="flex-shrink-0 w-3" />
-          )}
-
-          {/* Priority Dot */}
-          {!todo.completed && (
-            <button
-              onClick={() => onUpdatePriority(todo.id, PRIORITY_CYCLE[todo.priority])}
-              className={`flex-shrink-0 w-3 h-3 rounded-full ${PRIORITY_COLOR[todo.priority]} hover:opacity-70 transition-opacity`}
-              title={PRIORITY_LABEL[todo.priority]}
-            />
           )}
 
           {/* Checkbox */}

@@ -34,7 +34,6 @@ export interface Todo {
   completedAt: string | null;
   createdAt: string;
   source: 'manual' | 'ai';
-  priority: 'high' | 'medium' | 'low';
   subtasks?: Subtask[];
 }
 
@@ -65,7 +64,10 @@ export interface GranolaSuggestedTodo {
 }
 
 export interface GranolaMeetingReview {
+  id: string;
   meetingId: string;
   meetingTitle: string;
+  meetingSummary: string;
+  createdAt: string;
   todos: GranolaSuggestedTodo[];
 }

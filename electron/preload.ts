@@ -17,7 +17,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addTodo: (projectId: string, text: string, source: 'manual' | 'ai') => ipcRenderer.invoke('add-todo', projectId, text, source),
   toggleTodo: (id: string, completed: boolean) => ipcRenderer.invoke('toggle-todo', id, completed),
   deleteTodo: (id: string) => ipcRenderer.invoke('delete-todo', id),
-  updateTodoPriority: (id: string, priority: string) => ipcRenderer.invoke('update-todo-priority', id, priority),
   moveTodo: (id: string, newProjectId: string) => ipcRenderer.invoke('move-todo', id, newProjectId),
 
   // Subtasks
@@ -56,7 +55,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeUpdateStatusListener: () => ipcRenderer.removeAllListeners('update-status'),
 
   // Granola
-  onGranolaMeetingTodos: (cb: (review: GranolaMeetingReview) => void) =>
-    ipcRenderer.on('granola-meeting-todos', (_e, review) => cb(review)),
-  removeGranolaListener: () => ipcRenderer.removeAllListeners('granola-meeting-todos')
+  getGranolaReviews: () => ipcRenderer.invoke('get-granola-reviews'),
+  dismissGranolaReview: (id: string) => ipcRenderer.invoke('dismiss-granola-review', id),
+  onGranolaReviewsUpdated: (cb: () => void) =>
+    ipcRenderer.on('granola-reviews-updated', () => cb()),
+  removeGranolaListener: () => ipcRenderer.removeAllListeners('granola-reviews-updated')
 })

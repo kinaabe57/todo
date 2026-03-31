@@ -59,6 +59,15 @@ export class DatabaseService {
         processedAt TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS granola_pending_reviews (
+        id TEXT PRIMARY KEY,
+        meetingId TEXT NOT NULL,
+        meetingTitle TEXT NOT NULL,
+        meetingSummary TEXT NOT NULL,
+        todosJson TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS subtasks (
         id TEXT PRIMARY KEY,
         todoId TEXT NOT NULL,
@@ -242,7 +251,6 @@ export class DatabaseService {
     const stmt = this.db.prepare(`
       SELECT * FROM todos ORDER BY
         CASE WHEN completed = 0 THEN 0 ELSE 1 END,
-        CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 1 END,
         createdAt DESC
     `)
     const rows = stmt.all() as Array<{
@@ -253,7 +261,6 @@ export class DatabaseService {
       completedAt: string | null
       createdAt: string
       source: 'manual' | 'ai'
-      priority: 'high' | 'medium' | 'low'
     }>
     return rows.map(row => ({
       ...row,
@@ -269,11 +276,10 @@ export class DatabaseService {
       completed: false,
       completedAt: null,
       createdAt: new Date().toISOString(),
-      source,
-      priority: 'medium'
+      source
     }
-    const stmt = this.db.prepare('INSERT INTO todos (id, projectId, text, completed, completedAt, createdAt, source, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    stmt.run(todo.id, todo.projectId, todo.text, 0, null, todo.createdAt, todo.source, todo.priority)
+    const stmt = this.db.prepare('INSERT INTO todos (id, projectId, text, completed, completedAt, createdAt, source) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    stmt.run(todo.id, todo.projectId, todo.text, 0, null, todo.createdAt, todo.source)
     return todo
   }
 
@@ -284,24 +290,6 @@ export class DatabaseService {
 
     const getStmt = this.db.prepare('SELECT * FROM todos WHERE id = ?')
     const row = getStmt.get(id) as {
-      id: string
-      projectId: string
-      text: string
-      completed: number
-      completedAt: string | null
-      createdAt: string
-      source: 'manual' | 'ai'
-      priority: 'high' | 'medium' | 'low'
-    }
-    return {
-      ...row,
-      completed: Boolean(row.completed)
-    }
-  }
-
-  updateTodoPriority(id: string, priority: 'high' | 'medium' | 'low'): Todo {
-    this.db.prepare(`UPDATE todos SET priority = ? WHERE id = ?`).run(priority, id)
-    const row = this.db.prepare(`SELECT * FROM todos WHERE id = ?`).get(id) as {
       id: string
       projectId: string
       text: string
@@ -455,6 +443,24 @@ export class DatabaseService {
       message.timestamp,
       message.suggestedTodos ? JSON.stringify(message.suggestedTodos) : null
     )
+  }
+
+  // Granola pending reviews
+  getGranolaPendingReviews(): import('../../src/types').GranolaMeetingReview[] {
+    const rows = this.db.prepare('SELECT * FROM granola_pending_reviews ORDER BY createdAt ASC').all() as Array<{
+      id: string; meetingId: string; meetingTitle: string; meetingSummary: string; todosJson: string; createdAt: string
+    }>
+    return rows.map(r => ({ ...r, todos: JSON.parse(r.todosJson) }))
+  }
+
+  addGranolaPendingReview(review: import('../../src/types').GranolaMeetingReview): void {
+    this.db.prepare('INSERT OR IGNORE INTO granola_pending_reviews (id, meetingId, meetingTitle, meetingSummary, todosJson, createdAt) VALUES (?, ?, ?, ?, ?, ?)').run(
+      review.id, review.meetingId, review.meetingTitle, review.meetingSummary, JSON.stringify(review.todos), review.createdAt
+    )
+  }
+
+  dismissGranolaPendingReview(id: string): void {
+    this.db.prepare('DELETE FROM granola_pending_reviews WHERE id = ?').run(id)
   }
 
   // Granola tracking

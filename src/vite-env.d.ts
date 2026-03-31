@@ -21,7 +21,6 @@ interface ElectronAPI {
   addTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<Todo>;
   toggleTodo: (id: string, completed: boolean) => Promise<Todo>;
   deleteTodo: (id: string) => Promise<void>;
-  updateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => Promise<Todo>;
   moveTodo: (id: string, newProjectId: string) => Promise<Todo>;
   
   getAllSubtasks: () => Promise<Subtask[]>;
@@ -51,7 +50,9 @@ interface ElectronAPI {
   onUpdateStatus: (callback: (payload: { event: string; data?: unknown }) => void) => void;
   removeUpdateStatusListener: () => void;
 
-  onGranolaMeetingTodos: (callback: (review: GranolaMeetingReview) => void) => void;
+  getGranolaReviews: () => Promise<GranolaMeetingReview[]>;
+  dismissGranolaReview: (id: string) => Promise<void>;
+  onGranolaReviewsUpdated: (callback: () => void) => void;
   removeGranolaListener: () => void;
 }
 

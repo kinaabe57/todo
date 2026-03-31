@@ -55,7 +55,7 @@ export class ClaudeService {
       if (pending.length > 0) {
         summary += '\nPending todos:'
         pending.forEach(t => {
-          summary += `\n  [${t.priority}] ${t.text}`
+          summary += `\n  ${t.text}`
         })
       }
       return summary
