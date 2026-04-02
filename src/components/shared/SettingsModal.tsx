@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AppSettings } from '../../types'
+import { AppSettings, AppTheme } from '../../types'
 
 interface UpdateInfo {
   hasUpdate: boolean
@@ -20,7 +20,9 @@ interface SettingsModalProps {
 export default function SettingsModal({ settings, onSave, onClose, updateInfo, onDownloadUpdate, onInstallUpdate }: SettingsModalProps) {
   const [apiKey, setApiKey] = useState(settings.apiKey)
   const [granolaApiKey, setGranolaApiKey] = useState(settings.granolaApiKey ?? '')
+  const [userName, setUserName] = useState(settings.userName ?? '')
   const [celebrationSound, setCelebrationSound] = useState(settings.celebrationSoundEnabled)
+  const [theme, setTheme] = useState<AppTheme>(settings.theme ?? 'classic')
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [showGranolaKey, setShowGranolaKey] = useState(false)
@@ -47,7 +49,9 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
       await onSave({
         apiKey,
         celebrationSoundEnabled: celebrationSound,
-        granolaApiKey: granolaApiKey || undefined
+        granolaApiKey: granolaApiKey || undefined,
+        userName: userName || undefined,
+        theme
       })
     } finally {
       setIsSaving(false)
@@ -114,7 +118,23 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
           </div>
 
           {/* Granola Integration */}
-          <div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Your name
+              </label>
+              <p className="text-xs text-slate-500 mb-2">
+                Used to filter meeting todos to only those assigned to you.
+              </p>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="e.g. Kina"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+              />
+            </div>
+            <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Granola API Key
             </label>
@@ -145,6 +165,40 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
                   </svg>
                 )}
               </button>
+            </div>
+            </div>
+          </div>
+
+          {/* Theme Picker */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Theme
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { id: 'classic', label: 'Classic', colors: ['#b8c8d8', '#f0f4f8', '#2563eb'] },
+                { id: 'dark', label: 'Dark Tech', colors: ['#0e1117', '#161b22', '#58a6ff'] },
+                { id: 'glass', label: 'Glassmorphism', colors: ['#1a1040', '#312070', '#a78bfa'] },
+                { id: 'anime', label: 'Anime', colors: ['#fde8f0', '#ede8fb', '#7c3aed'] },
+              ] as { id: AppTheme; label: string; colors: string[] }[]).map(({ id, label, colors }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTheme(id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-left ${
+                    theme === id
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex gap-0.5 shrink-0">
+                    {colors.map((c, i) => (
+                      <div key={i} className="w-3 h-6 rounded-sm" style={{ backgroundColor: c }} />
+                    ))}
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">{label}</span>
+                </button>
+              ))}
             </div>
           </div>
 

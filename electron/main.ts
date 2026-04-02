@@ -81,6 +81,9 @@ async function pollGranola() {
     const settings = db.getSettings()
     if (!settings?.granolaApiKey) return
 
+    // Ensure Uncategorized project exists as fallback
+    db.getOrCreateUncategorizedProject()
+
     const lastPolled = db.getGranolaLastPolled()
     const now = new Date().toISOString()
     const notes = await granola.fetchRecentNotes(settings.granolaApiKey, lastPolled ?? undefined)
@@ -94,7 +97,7 @@ async function pollGranola() {
         if (!detail.summary_text && !detail.summary_markdown) continue
 
         const projects = db.getProjects()
-        const todos = await claude.extractMeetingTodos(detail, projects)
+        const todos = await claude.extractMeetingTodos(detail, projects, settings.userName)
         if (todos.length === 0) continue
 
         const review = {
@@ -297,4 +300,9 @@ ipcMain.handle('get-granola-reviews', () => {
 
 ipcMain.handle('dismiss-granola-review', (_event, id: string) => {
   db.dismissGranolaPendingReview(id)
+})
+
+ipcMain.handle('poll-granola-now', async () => {
+  await pollGranola()
+  mainWindow?.webContents.send('granola-reviews-updated')
 })

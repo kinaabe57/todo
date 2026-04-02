@@ -152,7 +152,8 @@ Be concise and direct. Reference the user's actual notes and todos when relevant
 
   async extractMeetingTodos(
     note: GranolaNote,
-    projects: Project[]
+    projects: Project[],
+    userName?: string
   ): Promise<{ text: string; projectId?: string }[]> {
     const apiKey = this.getApiKey()
     const client = new Anthropic({ apiKey })
@@ -161,22 +162,29 @@ Be concise and direct. Reference the user's actual notes and todos when relevant
       `Meeting: ${note.title || note.calendar_event?.title || 'Untitled'}`,
       note.calendar_event?.start_time ? `Date: ${new Date(note.calendar_event.start_time).toLocaleString()}` : '',
       note.attendees?.length ? `Attendees: ${note.attendees.map(a => a.name || a.email).join(', ')}` : '',
+      userName ? `Extracting todos for: ${userName}` : '',
       '',
-      'Summary:',
+      'Meeting summary and action items:',
       note.summary_markdown || note.summary_text || 'No summary available.'
     ].filter(Boolean).join('\n')
 
     const projectList = projects.map(p => `- ${p.name}${p.description ? `: ${p.description}` : ''}`).join('\n')
 
+    const userFilter = userName
+      ? `Focus on the "Next steps" or "Action items" section of the summary. Only include items explicitly assigned to "${userName}" by name. If an item has no named owner, skip it. Do not infer ownership.`
+      : 'Focus on the "Next steps" or "Action items" section of the summary. Include all items found there.'
+
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: `You extract action items from meeting notes and match them to existing projects.
+      system: `You extract next steps from meeting summaries and match them to projects.
+
+${userFilter}
 
 Available projects:
 ${projectList || 'No projects yet.'}
 
-Return ONLY a SUGGESTED_TODOS block with action items assigned to the best-matching project using **ProjectName**: prefix. If no project fits, omit the prefix. Max 8 todos. Only include clear, specific action items — not vague follow-ups.
+Assign each todo to the best-matching project using **ProjectName**: prefix. If no project fits, use **Uncategorized**. Return ONLY a SUGGESTED_TODOS block. Only include clear, specific action items — not vague follow-ups or general observations.
 
 SUGGESTED_TODOS:
 • [todo text]`,

@@ -7,6 +7,8 @@ interface Props {
   onAddTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<unknown>
   onDismiss: (id: string) => void
   onClose: () => void
+  onRefresh: () => void
+  refreshing: boolean
 }
 
 interface TodoState {
@@ -152,7 +154,7 @@ function MeetingCard({
   )
 }
 
-export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, onClose }: Props) {
+export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, onClose, onRefresh, refreshing }: Props) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-xl mx-4 flex flex-col max-h-[85vh]">
@@ -164,15 +166,28 @@ export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, 
               {reviews.length} unreviewed {reviews.length === 1 ? 'meeting' : 'meetings'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-40"
+              title="Check for new meetings"
+            >
+              <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Reviews list */}

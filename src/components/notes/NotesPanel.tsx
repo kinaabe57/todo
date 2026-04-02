@@ -665,7 +665,7 @@ export default function NotesPanel({ notes, projects, onAddNote, onUpdateNote, o
   const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
 
   return (
-    <div className="flex flex-col h-full bg-[#b8c8d8]">
+    <div className="flex flex-col h-full t-panel-bg">
       <div className="flex items-center justify-between px-3 py-2 mac-panel-header">
         <h2 className="text-xs font-bold text-[#1a2a3a] uppercase tracking-wide">Notes</h2>
         <button

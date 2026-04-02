@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Granola
   getGranolaReviews: () => ipcRenderer.invoke('get-granola-reviews'),
   dismissGranolaReview: (id: string) => ipcRenderer.invoke('dismiss-granola-review', id),
+  pollGranolaNow: () => ipcRenderer.invoke('poll-granola-now'),
   onGranolaReviewsUpdated: (cb: () => void) =>
     ipcRenderer.on('granola-reviews-updated', () => cb()),
   removeGranolaListener: () => ipcRenderer.removeAllListeners('granola-reviews-updated')

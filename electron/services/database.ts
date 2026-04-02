@@ -194,6 +194,20 @@ export class DatabaseService {
     orderedIds.forEach((id, index) => stmt.run(index, id))
   }
 
+  getOrCreateUncategorizedProject(): Project {
+    const existing = this.db.prepare("SELECT * FROM projects WHERE name = 'Uncategorized' AND archived = 0").get() as any
+    if (existing) {
+      return { ...existing, archived: Boolean(existing.archived), color: existing.color || '#94a3b8' }
+    }
+    const { pos } = this.db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as pos FROM projects WHERE archived = 0').get() as { pos: number }
+    const id = uuidv4()
+    const now = new Date().toISOString()
+    this.db.prepare('INSERT INTO projects (id, name, description, color, createdAt, archived, archivedAt, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+      id, 'Uncategorized', '', '#94a3b8', now, 0, null, pos
+    )
+    return { id, name: 'Uncategorized', description: '', color: '#94a3b8', createdAt: now, archived: false, archivedAt: null }
+  }
+
   archiveProject(id: string): Project {
     const archivedAt = new Date().toISOString()
     const stmt = this.db.prepare('UPDATE projects SET archived = 1, archivedAt = ? WHERE id = ?')

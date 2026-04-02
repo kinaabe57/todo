@@ -51,10 +51,14 @@ export interface SuggestedTodo {
   added: boolean;
 }
 
+export type AppTheme = 'classic' | 'dark' | 'glass' | 'anime'
+
 export interface AppSettings {
   apiKey: string;
   celebrationSoundEnabled: boolean;
   granolaApiKey?: string;
+  userName?: string;
+  theme?: AppTheme;
 }
 
 export interface GranolaSuggestedTodo {

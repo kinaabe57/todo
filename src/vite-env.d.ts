@@ -52,6 +52,7 @@ interface ElectronAPI {
 
   getGranolaReviews: () => Promise<GranolaMeetingReview[]>;
   dismissGranolaReview: (id: string) => Promise<void>;
+  pollGranolaNow: () => Promise<void>;
   onGranolaReviewsUpdated: (callback: () => void) => void;
   removeGranolaListener: () => void;
 }

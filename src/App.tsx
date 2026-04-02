@@ -31,6 +31,11 @@ function App() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [granolaPendingReviews, setGranolaPendingReviews] = useState<GranolaMeetingReview[]>([])
   const [showGranolaInbox, setShowGranolaInbox] = useState(false)
+  const [granolaRefreshing, setGranolaRefreshing] = useState(false)
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', settings.theme ?? 'classic')
+  }, [settings.theme])
 
   // Panel widths (chat and notes); todos takes remaining space
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -279,6 +284,14 @@ function App() {
     setGranolaPendingReviews(prev => prev.filter(r => r.id !== id))
   }
 
+  const handleGranolaRefresh = async () => {
+    setGranolaRefreshing(true)
+    await window.electronAPI.pollGranolaNow()
+    const reviews = await window.electronAPI.getGranolaReviews()
+    setGranolaPendingReviews(reviews)
+    setGranolaRefreshing(false)
+  }
+
   const handleMarkTodoAdded = (messageId: string, todoIndex: number) => {
     setMessages(prev => prev.map(msg => {
       if (msg.id === messageId && msg.suggestedTodos) {
@@ -299,7 +312,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#b8c8d8]">
+    <div className="flex flex-col h-screen t-app-bg">
       {/* Header */}
       <header className="drag-region flex items-center justify-between pl-20 pr-6 py-1.5 mac-app-bar">
         <h1 className="text-xs font-bold text-white tracking-widest uppercase">Smart Todo</h1>
@@ -335,7 +348,7 @@ function App() {
               ⚠ Download manually
             </button>
           )}
-          {granolaPendingReviews.length > 0 && (
+          {settings.granolaApiKey && (
             <button
               onClick={() => setShowGranolaInbox(true)}
               className="no-drag flex items-center gap-1.5 px-2 py-1 text-xs text-white/90 hover:text-white hover:bg-white/10 transition-colors"
@@ -344,9 +357,11 @@ function App() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="bg-white/20 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
-                {granolaPendingReviews.length}
-              </span>
+              {granolaPendingReviews.length > 0 && (
+                <span className="bg-white/20 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                  {granolaPendingReviews.length}
+                </span>
+              )}
             </button>
           )}
           <button
@@ -476,6 +491,8 @@ function App() {
           onAddTodo={handleAddTodo}
           onDismiss={handleDismissGranolaReview}
           onClose={() => setShowGranolaInbox(false)}
+          onRefresh={handleGranolaRefresh}
+          refreshing={granolaRefreshing}
         />
       )}
     </div>

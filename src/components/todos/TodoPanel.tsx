@@ -376,7 +376,7 @@ export default function TodoPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#b8c8d8]">
+    <div className="flex flex-col h-full t-panel-bg">
       <div className="px-3 py-2 mac-panel-header flex items-center justify-between">
         <h2 className="text-xs font-bold text-[#1a2a3a] flex items-center gap-2 uppercase tracking-wide">
           <span>📋</span>
