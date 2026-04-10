@@ -11,18 +11,26 @@ import TodoItem from './TodoItem'
 import AddTodoInput from './AddTodoInput'
 import AddNoteModal from './AddNoteModal'
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
 interface SortableTodoItemProps {
   todo: Todo
   subtasks: Subtask[]
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
+  onUpdate: (id: string, text: string) => Promise<void>
   celebrationEnabled: boolean
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
   onToggleSubtask: (id: string) => Promise<Subtask | undefined>
   onDeleteSubtask: (id: string) => Promise<void>
 }
 
-function SortableTodoItem({ todo, subtasks, onToggle, onDelete, celebrationEnabled, onAddSubtask, onToggleSubtask, onDeleteSubtask }: SortableTodoItemProps) {
+function SortableTodoItem({ todo, subtasks, onToggle, onDelete, onUpdate, celebrationEnabled, onAddSubtask, onToggleSubtask, onDeleteSubtask }: SortableTodoItemProps) {
   const {
     attributes,
     listeners,
@@ -46,6 +54,7 @@ function SortableTodoItem({ todo, subtasks, onToggle, onDelete, celebrationEnabl
         subtasks={subtasks}
         onToggle={onToggle}
         onDelete={onDelete}
+        onUpdate={onUpdate}
         celebrationEnabled={celebrationEnabled}
         dragHandleProps={{ ...attributes, ...listeners }}
         onAddSubtask={onAddSubtask}
@@ -64,6 +73,7 @@ interface ProjectSectionProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
+  onUpdateTodo: (id: string, text: string) => Promise<void>
   onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
   onEditProject?: (project: Project) => void
@@ -84,6 +94,7 @@ export default function ProjectSection({
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
+  onUpdateTodo,
   onAddNote,
   onArchiveProject,
   onEditProject,
@@ -123,21 +134,24 @@ export default function ProjectSection({
       ref={setNodeRef}
       className={`overflow-hidden transition-colors ${
         isDroppingFromOther
-          ? 'bg-[#ddeeff] border border-primary-400'
+          ? 'border border-primary-400/60 bg-primary-500/8'
           : 'mac-raised'
       }`}
     >
       {/* Project Header */}
       <div
-        className="px-3 py-1.5"
-        style={{ backgroundColor: isDroppingFromOther ? undefined : accentColor }}
+        className="px-3 py-2 group"
+        style={isDroppingFromOther ? undefined : {
+          borderLeft: `3px solid ${accentColor}`,
+          background: `linear-gradient(to right, ${hexToRgba(accentColor, 0.18)} 0%, transparent 75%)`
+        }}
       >
         <div className="flex items-center justify-between">
           {dragHandleProps && (
             <div
               {...dragHandleProps}
-              className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none mr-1"
-              style={{ color: 'rgba(255,255,255,0.6)' }}
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
@@ -158,9 +172,14 @@ export default function ProjectSection({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             <span className="text-sm font-semibold text-white">{project.name}</span>
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              ({pendingTodos.length})
-            </span>
+            {pendingTodos.length > 0 && (
+              <span
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
+                style={{ background: hexToRgba(accentColor, 0.22), color: accentColor }}
+              >
+                {pendingTodos.length}
+              </span>
+            )}
           </button>
 
           <div className="relative">
@@ -177,7 +196,7 @@ export default function ProjectSection({
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                <div className="absolute right-0 mt-1 w-40 mac-window py-1 z-20">
                   {onEditProject && (
                     <button
                       onClick={() => {
@@ -259,6 +278,7 @@ export default function ProjectSection({
                     subtasks={subtasks.filter(s => s.todoId === todo.id)}
                     onToggle={onToggleTodo}
                     onDelete={onDeleteTodo}
+                    onUpdate={onUpdateTodo}
                     celebrationEnabled={celebrationEnabled}
                     onAddSubtask={onAddSubtask}
                     onToggleSubtask={onToggleSubtask}
@@ -296,6 +316,7 @@ export default function ProjectSection({
                       subtasks={subtasks.filter(s => s.todoId === todo.id)}
                       onToggle={onToggleTodo}
                       onDelete={onDeleteTodo}
+                      onUpdate={onUpdateTodo}
                       celebrationEnabled={celebrationEnabled}
                       onAddSubtask={onAddSubtask}
                       onToggleSubtask={onToggleSubtask}

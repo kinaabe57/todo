@@ -1,8 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import electronUpdater from 'electron-updater'
-const { autoUpdater } = electronUpdater
 import path from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
+import { createRequire } from 'module'
 import { DatabaseService } from './services/database'
 import { ClaudeService } from './services/claude'
 import { GranolaService, extractSummary } from './services/granola'
@@ -10,9 +9,11 @@ import { Project, Todo, Note, ChatMessage, AppSettings } from '../src/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const _require = createRequire(import.meta.url)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const electronUpdater = _require('electron-updater') as any
 
 const GITHUB_REPO = 'kinaabe57/todo'
-const CURRENT_VERSION = app.getVersion()
 
 let mainWindow: BrowserWindow | null = null
 let db: DatabaseService
@@ -22,36 +23,34 @@ let granolaInterval: ReturnType<typeof setInterval> | null = null
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
-autoUpdater.autoDownload = false
-autoUpdater.setFeedURL({
-  provider: 'github',
-  owner: 'kinaabe57',
-  repo: 'todo'
-})
-
 function sendUpdateStatus(event: string, data?: unknown) {
   mainWindow?.webContents.send('update-status', { event, data })
 }
 
-autoUpdater.on('update-available', (info) => {
-  sendUpdateStatus('available', { version: info.version })
-})
-
-autoUpdater.on('update-not-available', () => {
-  sendUpdateStatus('not-available')
-})
-
-autoUpdater.on('download-progress', (progress) => {
-  sendUpdateStatus('progress', { percent: Math.round(progress.percent) })
-})
-
-autoUpdater.on('update-downloaded', () => {
-  sendUpdateStatus('downloaded')
-})
-
-autoUpdater.on('error', () => {
-  sendUpdateStatus('error')
-})
+function setupAutoUpdater() {
+  const { autoUpdater } = electronUpdater
+  autoUpdater.autoDownload = false
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'kinaabe57',
+    repo: 'todo'
+  })
+  autoUpdater.on('update-available', (info) => {
+    sendUpdateStatus('available', { version: info.version })
+  })
+  autoUpdater.on('update-not-available', () => {
+    sendUpdateStatus('not-available')
+  })
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus('progress', { percent: Math.round(progress.percent) })
+  })
+  autoUpdater.on('update-downloaded', () => {
+    sendUpdateStatus('downloaded')
+  })
+  autoUpdater.on('error', () => {
+    sendUpdateStatus('error')
+  })
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -134,6 +133,7 @@ app.whenReady().then(() => {
   db = new DatabaseService(path.join(userDataPath, 'smart-todo.db'))
   claude = new ClaudeService(db)
 
+  setupAutoUpdater()
   createWindow()
   startGranolaPoll()
 
@@ -198,6 +198,10 @@ ipcMain.handle('toggle-todo', (_event, id: string, completed: boolean) => {
 
 ipcMain.handle('delete-todo', (_event, id: string) => {
   return db.deleteTodo(id)
+})
+
+ipcMain.handle('update-todo', (_event, id: string, text: string) => {
+  return db.updateTodo(id, text)
 })
 
 ipcMain.handle('move-todo', (_event, id: string, newProjectId: string) => {
@@ -269,20 +273,20 @@ ipcMain.handle('save-settings', (_event, settings: AppSettings) => {
 // IPC Handlers for Updates
 ipcMain.handle('check-for-updates', async () => {
   if (app.isPackaged) {
-    await autoUpdater.checkForUpdates()
+    await electronUpdater.autoUpdater.checkForUpdates()
   } else {
-    return { currentVersion: CURRENT_VERSION }
+    return { currentVersion: app.getVersion() }
   }
 })
 
 ipcMain.handle('download-update', () => {
   if (app.isPackaged) {
-    autoUpdater.downloadUpdate()
+    electronUpdater.autoUpdater.downloadUpdate()
   }
 })
 
 ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall(false, true)
+  electronUpdater.autoUpdater.quitAndInstall(false, true)
 })
 
 ipcMain.handle('open-release-page', () => {
@@ -290,7 +294,7 @@ ipcMain.handle('open-release-page', () => {
 })
 
 ipcMain.handle('get-app-version', () => {
-  return CURRENT_VERSION
+  return app.getVersion()
 })
 
 // IPC Handlers for Granola

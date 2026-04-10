@@ -21,6 +21,7 @@ interface ElectronAPI {
   addTodo: (projectId: string, text: string, source: 'manual' | 'ai') => Promise<Todo>;
   toggleTodo: (id: string, completed: boolean) => Promise<Todo>;
   deleteTodo: (id: string) => Promise<void>;
+  updateTodo: (id: string, text: string) => Promise<Todo>;
   moveTodo: (id: string, newProjectId: string) => Promise<Todo>;
   
   getAllSubtasks: () => Promise<Subtask[]>;

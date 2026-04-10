@@ -1,6 +1,6 @@
 {
   "name": "smart-todo",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "type": "module",
   "description": "Intelligent To-Do Recommendation App powered by Claude",
   "main": "dist-electron/main.js",

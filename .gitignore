@@ -27,6 +27,10 @@ pnpm-debug.log*
 *.tmp
 *.temp
 
+# Claude Code
+.claude/
+skills-lock.json
+
 # Database (user data - not in project)
 *.db
 *.db-journal

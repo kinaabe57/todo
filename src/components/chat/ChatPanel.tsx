@@ -43,16 +43,15 @@ export default function ChatPanel({
   return (
     <div className="flex flex-col h-full t-chat-bg">
       <div className="px-3 py-2 mac-panel-header flex items-center justify-between">
-        <h2 className="text-xs font-bold text-[#1a2a3a] flex items-center gap-2 uppercase tracking-wide">
-          <span>💬</span>
+        <h2 className="text-[11px] font-semibold text-white/45 flex items-center gap-2 uppercase tracking-[0.1em]">
           Claude
           {!hasApiKey && (
-            <span className="text-xs font-normal text-amber-700 ml-1 normal-case">— add API key in Settings</span>
+            <span className="text-[10px] font-normal text-amber-500/80 ml-1 normal-case">— add API key in Settings</span>
           )}
         </h2>
         <button
           onClick={onToggleCollapse}
-          className="p-1 text-[#4a6080] hover:text-[#1a2a3a] hover:bg-[#b0c4d8] transition-colors"
+          className="p-1 text-white/35 hover:text-white/70 hover:bg-white/8 rounded transition-colors"
           title="Collapse chat"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -137,6 +137,7 @@ interface SortableProjectSectionProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
+  onUpdateTodo: (id: string, text: string) => Promise<void>
   onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onArchiveProject: (id: string) => Promise<void>
   onEditProject: (project: Project) => void
@@ -195,6 +196,7 @@ interface TodoPanelProps {
   onAddTodo: (projectId: string, text: string, source?: 'manual' | 'ai') => Promise<Todo>
   onToggleTodo: (id: string) => Promise<Todo | undefined>
   onDeleteTodo: (id: string) => Promise<void>
+  onUpdateTodo: (id: string, text: string) => Promise<void>
   onAddNote: (projectId: string | null, content: string) => Promise<Note>
   onMoveTodo: (todoId: string, newProjectId: string) => Promise<void>
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
@@ -217,6 +219,7 @@ export default function TodoPanel({
   onAddTodo,
   onToggleTodo,
   onDeleteTodo,
+  onUpdateTodo,
   onAddNote,
   onMoveTodo,
   onAddSubtask,
@@ -378,14 +381,12 @@ export default function TodoPanel({
   return (
     <div className="flex flex-col h-full t-panel-bg">
       <div className="px-3 py-2 mac-panel-header flex items-center justify-between">
-        <h2 className="text-xs font-bold text-[#1a2a3a] flex items-center gap-2 uppercase tracking-wide">
-          <span>📋</span>
+        <h2 className="text-[11px] font-semibold text-white/45 flex items-center gap-2 uppercase tracking-[0.1em]">
           My Todos
         </h2>
         <button
           onClick={() => setShowAddProject(true)}
-          className="text-xs bg-primary-500 text-white px-3 py-1 mac-raised hover:bg-primary-600 transition-colors flex items-center gap-1"
-          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.25), 1px 1px 0 rgba(0,0,0,0.3)' }}
+          className="text-xs bg-primary-600/70 text-white/90 px-3 py-1 rounded-lg hover:bg-primary-500/80 transition-colors flex items-center gap-1 backdrop-blur-sm border border-primary-400/20"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -403,8 +404,7 @@ export default function TodoPanel({
               <p className="text-sm mt-2">Create your first project to start adding todos</p>
               <button
                 onClick={() => setShowAddProject(true)}
-                className="mt-4 text-xs bg-primary-500 text-white px-4 py-2 hover:bg-primary-600 transition-colors"
-          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.25), 1px 1px 0 rgba(0,0,0,0.3)' }}
+                className="mt-4 text-xs bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
               >
                 Create Project
               </button>
@@ -432,6 +432,7 @@ export default function TodoPanel({
                   onAddTodo={onAddTodo}
                   onToggleTodo={onToggleTodo}
                   onDeleteTodo={onDeleteTodo}
+                  onUpdateTodo={onUpdateTodo}
                   onAddNote={onAddNote}
                   onArchiveProject={onArchiveProject}
                   onEditProject={setEditingProject}
@@ -457,10 +458,10 @@ export default function TodoPanel({
 
         {/* Archived Projects Section */}
         {archivedProjects.length > 0 && (
-          <div className="mt-6 pt-4 border-t border-slate-200">
+          <div className="mt-6 pt-4 border-t border-white/8">
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className="flex items-center gap-2 text-xs text-[#3a5070] hover:text-[#1a2a3a] mb-3"
+              className="flex items-center gap-2 text-xs text-white/35 hover:text-white/60 mb-3 transition-colors"
             >
               <svg
                 className={`w-4 h-4 transition-transform ${showArchived ? 'rotate-90' : ''}`}
@@ -470,7 +471,6 @@ export default function TodoPanel({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="text-lg">📦</span>
               Archived Projects ({archivedProjects.length})
             </button>
 

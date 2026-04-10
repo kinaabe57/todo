@@ -8,6 +8,7 @@ interface TodoItemProps {
   subtasks: Subtask[]
   onToggle: (id: string) => Promise<Todo | undefined>
   onDelete: (id: string) => Promise<void>
+  onUpdate: (id: string, text: string) => Promise<void>
   celebrationEnabled: boolean
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
   onAddSubtask: (todoId: string, text: string) => Promise<Subtask>
@@ -15,7 +16,7 @@ interface TodoItemProps {
   onDeleteSubtask: (id: string) => Promise<void>
 }
 
-export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrationEnabled, dragHandleProps, onAddSubtask, onToggleSubtask, onDeleteSubtask }: TodoItemProps) {
+export default function TodoItem({ todo, subtasks, onToggle, onDelete, onUpdate, celebrationEnabled, dragHandleProps, onAddSubtask, onToggleSubtask, onDeleteSubtask }: TodoItemProps) {
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationPos, setCelebrationPos] = useState({ x: 0, y: 0 })
   const [isAnimating, setIsAnimating] = useState(false)
@@ -23,13 +24,30 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
   const [showCompletedSubtasks, setShowCompletedSubtasks] = useState(false)
   const [showAddSubtask, setShowAddSubtask] = useState(false)
   const [newSubtaskText, setNewSubtaskText] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState(todo.text)
   const subtaskInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (showAddSubtask) {
-      subtaskInputRef.current?.focus()
-    }
+    if (showAddSubtask) subtaskInputRef.current?.focus()
   }, [showAddSubtask])
+
+  useEffect(() => {
+    if (isEditing) editInputRef.current?.select()
+  }, [isEditing])
+
+  const handleEditCommit = async () => {
+    const trimmed = editText.trim()
+    if (trimmed && trimmed !== todo.text) await onUpdate(todo.id, trimmed)
+    else setEditText(todo.text)
+    setIsEditing(false)
+  }
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleEditCommit()
+    else if (e.key === 'Escape') { setEditText(todo.text); setIsEditing(false) }
+  }
 
   const handleToggle = async (e: React.MouseEvent) => {
     if (!todo.completed && celebrationEnabled) {
@@ -76,14 +94,12 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
         exit={{ opacity: 0, x: -20 }}
       >
         {/* Main todo row */}
-        <div className={`group flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#dde8f4] transition-colors ${
-          todo.completed ? 'opacity-60' : ''
-        }`}>
+        <div className={`group flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/8 transition-colors`}>
           {/* Drag Handle */}
           {dragHandleProps && (
             <div
               {...dragHandleProps}
-              className="flex-shrink-0 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 touch-none"
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing text-white/25 hover:text-white/50 touch-none opacity-0 group-hover:opacity-100 transition-all"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
@@ -114,12 +130,11 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
           {/* Checkbox */}
           <button
             onClick={handleToggle}
-            className={`flex-shrink-0 w-4 h-4 border-2 flex items-center justify-center transition-all ${
+            className={`flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
               todo.completed
-                ? 'bg-green-600 border-green-700'
-                : 'border-[#8090b0] hover:border-primary-500 bg-white'
+                ? 'bg-emerald-500 border-emerald-500'
+                : 'border-white/25 hover:border-primary-400 bg-transparent'
             } ${isAnimating ? 'animate-check-bounce' : ''}`}
-            style={{ boxShadow: 'inset 1px 1px 0 rgba(0,0,0,0.15)' }}
           >
             {todo.completed && (
               <motion.svg
@@ -135,24 +150,34 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
             )}
           </button>
 
-          {/* Todo Text */}
-          <span
-            className={`flex-1 text-sm ${
-              todo.completed ? 'line-through text-slate-400' : 'text-slate-700'
-            }`}
-          >
-            {todo.text}
-          </span>
+          {/* Todo Text / Inline Editor */}
+          {isEditing ? (
+            <input
+              ref={editInputRef}
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+              onBlur={handleEditCommit}
+              className="flex-1 text-sm text-slate-700 bg-white border border-primary-400 rounded px-1.5 py-0.5 outline-none ring-2 ring-primary-200"
+            />
+          ) : (
+            <span
+              className={`flex-1 text-sm ${todo.completed ? 'line-through text-white/30' : 'text-white/85'}`}
+              onDoubleClick={() => !todo.completed && setIsEditing(true)}
+            >
+              {todo.text}
+            </span>
+          )}
 
           {/* Source Badge */}
-          {todo.source === 'ai' && (
-            <span className="text-xs bg-[#d8d0e8] text-[#5030a0] px-1.5 py-0.5" style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.5)' }}>
+          {todo.source === 'ai' && !isEditing && (
+            <span className="text-xs bg-[#d8d0e8] text-[#5030a0] px-1.5 py-0.5 rounded-md">
               AI
             </span>
           )}
 
           {/* Completed subtasks count */}
-          {completedSubtasks.length > 0 && !todo.completed && (
+          {completedSubtasks.length > 0 && !todo.completed && !isEditing && (
             <button
               onClick={() => setShowCompletedSubtasks(s => !s)}
               className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 text-xs text-slate-400 hover:text-slate-600 transition-all"
@@ -165,8 +190,21 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
             </button>
           )}
 
+          {/* Edit Button */}
+          {!todo.completed && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-primary-500 transition-all"
+              title="Edit todo"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          )}
+
           {/* Add Subtask Button */}
-          {!todo.completed && (
+          {!todo.completed && !isEditing && (
             <button
               onClick={() => { setShowAddSubtask(true); setSubtasksExpanded(true) }}
               className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-primary-500 transition-all"
@@ -179,15 +217,17 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
           )}
 
           {/* Delete Button */}
-          <button
-            onClick={() => onDelete(todo.id)}
-            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
-            title="Delete todo"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {!isEditing && (
+            <button
+              onClick={() => onDelete(todo.id)}
+              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
+              title="Delete todo"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Subtasks */}
@@ -196,12 +236,11 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
             {pendingSubtasks.map(subtask => (
               <div
                 key={subtask.id}
-                className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#dde8f4] transition-colors"
+                className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/8 transition-colors"
               >
                 <button
                   onClick={() => onToggleSubtask(subtask.id)}
-                  className="flex-shrink-0 w-4 h-4 border-2 border-[#8090b0] hover:border-primary-500 bg-white flex items-center justify-center transition-all"
-          style={{ boxShadow: 'inset 1px 1px 0 rgba(0,0,0,0.15)' }}
+                  className="flex-shrink-0 w-4 h-4 rounded-full border-2 border-white/25 hover:border-primary-400 bg-transparent flex items-center justify-center transition-all"
                 />
                 <span className="flex-1 text-sm text-slate-700">{subtask.text}</span>
                 <button
@@ -221,17 +260,17 @@ export default function TodoItem({ todo, subtasks, onToggle, onDelete, celebrati
                 {completedSubtasks.map(subtask => (
                   <div
                     key={subtask.id}
-                    className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#dde8f4] transition-colors"
+                    className="group/subtask flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/8 transition-colors"
                   >
                     <button
                       onClick={() => onToggleSubtask(subtask.id)}
-                      className="flex-shrink-0 w-4 h-4 border-2 bg-green-600 border-green-700 flex items-center justify-center transition-all"
+                      className="flex-shrink-0 w-4 h-4 rounded-full border-2 bg-emerald-500 border-emerald-500 flex items-center justify-center transition-all"
                     >
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </button>
-                    <span className="flex-1 text-sm line-through text-slate-400">{subtask.text}</span>
+                    <span className="flex-1 text-sm line-through text-white/30">{subtask.text}</span>
                     <button
                       onClick={() => onDeleteSubtask(subtask.id)}
                       className="opacity-0 group-hover/subtask:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"

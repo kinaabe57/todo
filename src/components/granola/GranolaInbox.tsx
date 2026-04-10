@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { GranolaMeetingReview, GranolaSuggestedTodo, Project } from '../../types'
 
 interface Props {
@@ -30,8 +30,15 @@ function MeetingCard({
   const [todoStates, setTodoStates] = useState<TodoState[]>(
     review.todos.map((t: GranolaSuggestedTodo) => ({ selected: true, projectId: t.projectId }))
   )
+  const [todoTexts, setTodoTexts] = useState<string[]>(review.todos.map(t => t.text))
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
   const [summaryExpanded, setSummaryExpanded] = useState(false)
   const [adding, setAdding] = useState(false)
+
+  useEffect(() => {
+    if (editingIndex !== null) editInputRef.current?.select()
+  }, [editingIndex])
 
   const addableCount = todoStates.filter(s => s.selected && s.projectId).length
   const selectedCount = todoStates.filter(s => s.selected).length
@@ -54,7 +61,7 @@ function MeetingCard({
     for (let i = 0; i < review.todos.length; i++) {
       const s = todoStates[i]
       if (!s.selected || !s.projectId) continue
-      await onAddTodo(s.projectId, review.todos[i].text, 'ai')
+      await onAddTodo(s.projectId, todoTexts[i], 'ai')
     }
     setAdding(false)
     onDismiss(review.id)
@@ -101,19 +108,46 @@ function MeetingCard({
 
       {/* Todo list */}
       <div className="divide-y divide-slate-100">
-        {review.todos.map((todo, i) => {
+        {review.todos.map((_todo, i) => {
           const state = todoStates[i]
+          const isEditingThis = editingIndex === i
           return (
-            <div key={i} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50">
+            <div key={i} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 group/row">
               <input
                 type="checkbox"
                 checked={state.selected}
                 onChange={e => toggleSelected(i, e.target.checked)}
                 className="w-4 h-4 text-primary-500 border-slate-300 rounded focus:ring-primary-500 flex-shrink-0"
               />
-              <p className={`flex-1 text-sm min-w-0 ${state.selected ? 'text-slate-800' : 'text-slate-400 line-through'}`}>
-                {todo.text}
-              </p>
+              {isEditingThis ? (
+                <input
+                  ref={editInputRef}
+                  value={todoTexts[i]}
+                  onChange={e => setTodoTexts(prev => prev.map((t, j) => j === i ? e.target.value : t))}
+                  onBlur={() => setEditingIndex(null)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingIndex(null) }}
+                  className="flex-1 text-sm text-slate-800 border border-primary-400 rounded px-1.5 py-0.5 outline-none ring-2 ring-primary-200 min-w-0"
+                />
+              ) : (
+                <span
+                  className={`flex-1 text-sm min-w-0 ${state.selected ? 'text-slate-800' : 'text-slate-400 line-through'}`}
+                  onDoubleClick={() => state.selected && setEditingIndex(i)}
+                  title="Double-click to edit"
+                >
+                  {todoTexts[i]}
+                </span>
+              )}
+              {!isEditingThis && state.selected && (
+                <button
+                  onClick={() => setEditingIndex(i)}
+                  className="opacity-0 group-hover/row:opacity-100 p-1 text-slate-400 hover:text-primary-500 transition-all flex-shrink-0"
+                  title="Edit"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              )}
               <select
                 value={state.projectId ?? ''}
                 onChange={e => setProject(i, e.target.value)}
@@ -131,7 +165,7 @@ function MeetingCard({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between bg-white">
+      <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between bg-white/5">
         <button
           type="button"
           onClick={toggleAll}
@@ -156,13 +190,13 @@ function MeetingCard({
 
 export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, onClose, onRefresh, refreshing }: Props) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-xl mx-4 flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="mac-window w-full max-w-xl flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
           <div>
-            <h3 className="text-base font-semibold text-slate-800">Meeting Inbox</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h3 className="text-base font-semibold text-white/90">Meeting Inbox</h3>
+            <p className="text-xs text-white/50 mt-0.5">
               {reviews.length} unreviewed {reviews.length === 1 ? 'meeting' : 'meetings'}
             </p>
           </div>
@@ -171,7 +205,7 @@ export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, 
               type="button"
               onClick={onRefresh}
               disabled={refreshing}
-              className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-40"
+              className="text-white/40 hover:text-white/70 transition-colors disabled:opacity-40"
               title="Check for new meetings"
             >
               <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,7 +215,7 @@ export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, 
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
+              className="text-white/40 hover:text-white/70 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -193,7 +227,7 @@ export default function GranolaInbox({ reviews, projects, onAddTodo, onDismiss, 
         {/* Reviews list */}
         <div className="overflow-y-auto flex-1 p-4 space-y-4">
           {reviews.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-sm">
+            <div className="text-center py-12 text-white/40 text-sm">
               No pending meetings — you're all caught up!
             </div>
           ) : (

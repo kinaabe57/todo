@@ -2,17 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   ROOT — dark purple glassmorphism base
+═══════════════════════════════════════════════════════════════ */
 :root {
-  font-family: Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  line-height: 1.4;
+  font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  line-height: 1.5;
   font-weight: 400;
-  color: #1a2a3a;
-  background-color: #b8c8d8;
+  color: rgba(255,255,255,0.88);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
-  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 13px;
 }
 
 body {
@@ -27,309 +29,209 @@ body {
   flex-direction: column;
 }
 
-/* Title bar drag region */
 .drag-region { -webkit-app-region: drag; }
 .no-drag     { -webkit-app-region: no-drag; }
 
-/* ── Mac OS Late 90s / iMac Era Chrome ────────────────────────── */
-
-/* Top-level app title bar — bondi blue pinstripe */
-.mac-app-bar {
-  background: repeating-linear-gradient(
-    to bottom,
-    #2898d0 0px, #2898d0 1px,
-    #1070a8 1px, #1070a8 2px
-  );
-  border-bottom: 2px solid #0a5080;
-  box-shadow: inset 0 1px 0 #60c0e8;
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUND — deep multi-tone purple gradient (BOOSTED)
+═══════════════════════════════════════════════════════════════ */
+.t-app-bg {
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(139,92,246,0.55) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(109,40,217,0.65) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 88%, rgba(168,85,247,0.45) 0%, transparent 52%),
+    radial-gradient(ellipse at 30% 15%, rgba(124,58,237,0.5) 0%, transparent 46%),
+    radial-gradient(ellipse at 75% 62%, rgba(76,29,149,0.4) 0%, transparent 44%),
+    linear-gradient(145deg, #0d0020 0%, #08071a 40%, #110028 70%, #060012 100%);
+  background-attachment: fixed;
 }
 
-/* Panel sub-header — blue-tinted platinum chrome */
-.mac-panel-header {
-  background: linear-gradient(to bottom, #d8e4f0 0%, #c8d4e4 100%);
-  box-shadow: inset 0 1px 0 #eef4fa, inset 0 -1px 0 #8090a8;
+/* ── Glass panel surfaces ──────────────────────────────────── */
+/* Panel separation via shadow, not just border */
+.t-panel-bg {
+  background: rgba(255,255,255,0.045) !important;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.06), 6px 0 32px rgba(0,0,0,0.3);
 }
-
-/* Modal / floating window */
-.mac-window {
-  background: #c8d4e0;
-  border: 1px solid #3a5070;
-  box-shadow:
-    inset 1px 1px 0 #eef4fa,
-    inset -1px -1px 0 #6080a0,
-    4px 4px 0 rgba(0,0,30,0.4);
-}
-
-/* Raised surface — white-to-cream gradient with blue tinted bevel */
-.mac-raised {
-  background: linear-gradient(to bottom, #ffffff 0%, #eef2f8 100%);
-  border: 1px solid #8090a8;
-  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #7090b0;
-}
-
-/* Inset well — inputs, content areas */
-.mac-inset {
-  background: #ffffff;
-  border: 1px solid #7090b0;
-  box-shadow: inset 1px 1px 3px rgba(0,40,80,0.15), inset -1px -1px 0 #dde8f4;
+.t-chat-bg {
+  background: rgba(255,255,255,0.035) !important;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.05), 6px 0 32px rgba(0,0,0,0.3);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   THEME SYSTEM
-   data-theme is applied to <html> so all descendants inherit.
-   Structural utility classes (t-app-bg etc.) replace hardcoded
-   Tailwind bg colors on the main layout divs.
+   STRUCTURAL CLASSES
 ═══════════════════════════════════════════════════════════════ */
 
-/* — Structural utilities (classic values, overridden per theme) — */
-.t-app-bg   { background-color: #b8c8d8; }
-.t-panel-bg { background-color: #b8c8d8; }
-.t-chat-bg  { background-color: #f0f4f8; }
-
-/* ── DARK TECH ──────────────────────────────────────────────── */
-html[data-theme="dark"] {
-  color: #e6edf3;
-  font-family: -apple-system, 'Helvetica Neue', system-ui, sans-serif;
-}
-html[data-theme="dark"] .t-app-bg,
-html[data-theme="dark"] .t-panel-bg,
-html[data-theme="dark"] .t-chat-bg  { background-color: #0e1117; }
-
-html[data-theme="dark"] .mac-app-bar {
-  background: #0e1117 !important;
-  border-bottom: 1px solid #21262d;
+/* App bar — frosted top strip */
+.mac-app-bar {
+  background: rgba(0,0,0,0.18);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   box-shadow: none;
 }
-html[data-theme="dark"] .mac-panel-header {
-  background: #161b22 !important;
-  box-shadow: none;
-  border-color: #21262d;
-}
-html[data-theme="dark"] .mac-raised {
-  background: #161b22 !important;
-  border: 1px solid #21262d;
+
+/* Panel sub-header */
+.mac-panel-header {
+  background: transparent;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   box-shadow: none;
 }
-html[data-theme="dark"] .mac-inset {
-  background: #0e1117 !important;
-  border: 1px solid #30363d;
-  box-shadow: none;
-}
-html[data-theme="dark"] .mac-window {
-  background: #161b22 !important;
-  border: 1px solid #30363d;
-  box-shadow: 0 24px 48px rgba(0,0,0,0.6) !important;
-}
 
-/* text */
-html[data-theme="dark"] .text-\[\#1a2a3a\]              { color: #e6edf3; }
-html[data-theme="dark"] .text-\[\#4a6080\]              { color: #8b949e; }
-html[data-theme="dark"] .text-\[\#6080a0\]              { color: #6e7681; }
-html[data-theme="dark"] .text-\[\#3a5070\]              { color: #8b949e; }
-html[data-theme="dark"] .text-\[\#7090b0\]              { color: #484f58; }
-html[data-theme="dark"] .text-\[\#5070a0\]              { color: #8b949e; }
-html[data-theme="dark"] .hover\:text-\[\#1a2a3a\]:hover { color: #e6edf3 !important; }
-html[data-theme="dark"] .placeholder\:text-\[\#7090b0\]::placeholder { color: #484f58; }
-
-/* borders */
-html[data-theme="dark"] .border-\[\#8090b0\] { border-color: #30363d; }
-html[data-theme="dark"] .border-\[\#7090b0\] { border-color: #21262d; }
-
-/* backgrounds + hover */
-html[data-theme="dark"] .bg-\[\#dde8f4\]               { background-color: #1c2128 !important; box-shadow: none !important; border-color: #30363d !important; }
-html[data-theme="dark"] .bg-\[\#c8d4e0\]               { background-color: #1f2937 !important; }
-html[data-theme="dark"] .bg-\[\#f0f4f8\]               { background-color: #0e1117 !important; }
-html[data-theme="dark"] .bg-\[\#b8c8d8\]               { background-color: #0e1117 !important; }
-html[data-theme="dark"] .hover\:bg-\[\#dde8f4\]:hover  { background-color: #21262d !important; }
-html[data-theme="dark"] .hover\:bg-\[\#b0c4d8\]:hover  { background-color: #21262d !important; }
-
-/* scrollbar */
-html[data-theme="dark"] ::-webkit-scrollbar             { width: 6px; height: 6px; }
-html[data-theme="dark"] ::-webkit-scrollbar-track       { background: #0e1117; border-left: 1px solid #21262d; }
-html[data-theme="dark"] ::-webkit-scrollbar-thumb       { background: #30363d; border: none; box-shadow: none; min-height: 20px; border-radius: 3px; }
-html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #484f58; }
-html[data-theme="dark"] ::-webkit-scrollbar-button      { display: none; }
-
-
-/* ── GLASSMORPHISM ──────────────────────────────────────────── */
-html[data-theme="glass"] {
-  color: #ffffff;
-  font-family: -apple-system, 'Helvetica Neue', system-ui, sans-serif;
-}
-html[data-theme="glass"] .t-app-bg {
-  background: linear-gradient(145deg, #0f0c29 0%, #302b63 55%, #24243e 100%);
-  background-attachment: fixed;
-}
-html[data-theme="glass"] .t-panel-bg {
-  background: rgba(255,255,255,0.07) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-html[data-theme="glass"] .t-chat-bg {
-  background: rgba(15,12,40,0.65) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+/* Raised glass card — clearer depth */
+.mac-raised {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
 }
 
-html[data-theme="glass"] .mac-app-bar {
+/* Inset glass well — inputs */
+.mac-inset {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+  color: rgba(255,255,255,0.88);
+}
+.mac-inset::placeholder { color: rgba(255,255,255,0.25); }
+.mac-inset:focus {
+  border-color: rgba(139,92,246,0.7);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.18), inset 0 1px 3px rgba(0,0,0,0.3);
+  outline: none;
+}
+
+/* Modal / floating window — substantially more opaque than panels */
+.mac-window {
+  background: rgba(12,6,30,0.94);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(139,92,246,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  border-radius: 20px;
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL COLOR OVERRIDES
+   Override all hardcoded light-mode Tailwind classes throughout
+   the component tree.
+═══════════════════════════════════════════════════════════════ */
+
+/* — Text — */
+.text-slate-800, .text-slate-700  { color: rgba(255,255,255,0.9) !important; }
+.text-slate-600                   { color: rgba(255,255,255,0.65) !important; }
+.text-slate-500                   { color: rgba(255,255,255,0.5) !important; }
+.text-slate-400                   { color: rgba(255,255,255,0.35) !important; }
+.text-slate-300                   { color: rgba(255,255,255,0.25) !important; }
+
+.text-\[\#1a2a3a\]                { color: rgba(255,255,255,0.88); }
+.text-\[\#4a6080\]                { color: rgba(255,255,255,0.5); }
+.text-\[\#6080a0\]                { color: rgba(255,255,255,0.38); }
+.text-\[\#3a5070\]                { color: rgba(255,255,255,0.55); }
+.text-\[\#7090b0\]                { color: rgba(255,255,255,0.28); }
+.text-\[\#5070a0\]                { color: rgba(255,255,255,0.48); }
+.text-\[\#802020\]                { color: rgba(255,130,130,0.95) !important; }
+.text-\[\#5030a0\]                { color: rgba(196,181,253,0.95) !important; }
+
+.hover\:text-slate-500:hover      { color: rgba(255,255,255,0.6) !important; }
+.hover\:text-slate-600:hover      { color: rgba(255,255,255,0.72) !important; }
+.hover\:text-slate-700:hover      { color: rgba(255,255,255,0.85) !important; }
+.hover\:text-slate-800:hover      { color: rgba(255,255,255,0.95) !important; }
+.hover\:text-\[\#1a2a3a\]:hover   { color: rgba(255,255,255,0.95) !important; }
+
+.placeholder\:text-\[\#7090b0\]::placeholder { color: rgba(255,255,255,0.25); }
+
+/* — Backgrounds — */
+.bg-white                         { background-color: rgba(255,255,255,0.06) !important; }
+.bg-slate-50                      { background-color: rgba(255,255,255,0.035) !important; }
+.bg-slate-100                     { background-color: rgba(255,255,255,0.055) !important; }
+.bg-slate-200                     { background-color: rgba(255,255,255,0.09) !important; }
+
+.bg-\[\#b8c8d8\],
+.bg-\[\#c8d4e0\],
+.bg-\[\#c8d8e8\],
+.bg-\[\#d0dce8\]                  { background-color: rgba(255,255,255,0.06) !important; }
+.bg-\[\#dde8f4\]                  { background-color: rgba(139,92,246,0.1) !important; box-shadow: none !important; }
+.bg-\[\#f0f4f8\]                  { background-color: rgba(255,255,255,0.05) !important; }
+.bg-\[\#6080a0\]                  { background-color: rgba(255,255,255,0.12) !important; }
+.bg-\[\#d8d0e8\]                  { background-color: rgba(139,92,246,0.18) !important; }
+.bg-\[\#f8d0d0\]                  { background-color: rgba(239,68,68,0.14) !important; }
+
+.hover\:bg-slate-50:hover         { background-color: rgba(255,255,255,0.045) !important; }
+.hover\:bg-slate-100:hover        { background-color: rgba(255,255,255,0.065) !important; }
+.hover\:bg-slate-200:hover        { background-color: rgba(255,255,255,0.09) !important; }
+.hover\:bg-\[\#dde8f4\]:hover     { background-color: rgba(139,92,246,0.12) !important; }
+.hover\:bg-\[\#b0c4d8\]:hover     { background-color: rgba(255,255,255,0.07) !important; }
+.hover\:bg-amber-50:hover         { background-color: rgba(251,191,36,0.08) !important; }
+.hover\:bg-primary-50:hover       { background-color: rgba(139,92,246,0.1) !important; }
+
+/* — Borders — */
+.border-slate-100                 { border-color: rgba(255,255,255,0.06) !important; }
+.border-slate-200                 { border-color: rgba(255,255,255,0.09) !important; }
+.border-slate-200\/50             { border-color: rgba(255,255,255,0.05) !important; }
+.border-slate-300                 { border-color: rgba(255,255,255,0.12) !important; }
+.border-\[\#8090b0\]              { border-color: rgba(255,255,255,0.10); }
+.border-\[\#7090b0\]              { border-color: rgba(255,255,255,0.07); }
+.border-\[\#c04040\]              { border-color: rgba(239,68,68,0.45) !important; }
+.border-primary-200               { border-color: rgba(139,92,246,0.3) !important; }
+
+/* divide utilities */
+.divide-y > * + *                 { border-top-color: rgba(255,255,255,0.06) !important; }
+.divide-slate-100 > * + *         { border-top-color: rgba(255,255,255,0.06) !important; }
+
+/* — Inputs & selects — */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea,
+select {
   background: rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.12);
-  box-shadow: none;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.9) !important;
 }
-html[data-theme="glass"] .mac-panel-header {
-  background: rgba(255,255,255,0.08) !important;
-  border-color: rgba(255,255,255,0.1);
-  box-shadow: none;
+input::placeholder, textarea::placeholder {
+  color: rgba(255,255,255,0.25) !important;
 }
-html[data-theme="glass"] .mac-raised {
-  background: rgba(255,255,255,0.1) !important;
-  border: 1px solid rgba(255,255,255,0.18);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(139,92,246,0.7) !important;
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.18) !important;
+  outline: none;
 }
-html[data-theme="glass"] .mac-inset {
-  background: rgba(255,255,255,0.08) !important;
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: none;
-}
-html[data-theme="glass"] .mac-window {
-  background: rgba(15,12,40,0.85) !important;
-  border: 1px solid rgba(255,255,255,0.2);
-  box-shadow: 0 24px 48px rgba(0,0,0,0.5) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+select option {
+  background: #1a0840;
+  color: rgba(255,255,255,0.88);
 }
 
-/* text */
-html[data-theme="glass"] .text-\[\#1a2a3a\]              { color: rgba(255,255,255,0.95); }
-html[data-theme="glass"] .text-\[\#4a6080\]              { color: rgba(255,255,255,0.65); }
-html[data-theme="glass"] .text-\[\#6080a0\]              { color: rgba(255,255,255,0.5); }
-html[data-theme="glass"] .text-\[\#3a5070\]              { color: rgba(255,255,255,0.65); }
-html[data-theme="glass"] .text-\[\#7090b0\]              { color: rgba(255,255,255,0.35); }
-html[data-theme="glass"] .text-\[\#5070a0\]              { color: rgba(255,255,255,0.65); }
-html[data-theme="glass"] .hover\:text-\[\#1a2a3a\]:hover { color: #ffffff !important; }
-html[data-theme="glass"] .placeholder\:text-\[\#7090b0\]::placeholder { color: rgba(255,255,255,0.35); }
+/* — Misc utility overrides — */
+.bg-black\/50                     { background-color: rgba(0,0,0,0.6) !important; }
 
-/* borders */
-html[data-theme="glass"] .border-\[\#8090b0\] { border-color: rgba(255,255,255,0.2); }
-html[data-theme="glass"] .border-\[\#7090b0\] { border-color: rgba(255,255,255,0.12); }
+/* Green / red status colors — boost visibility on dark bg */
+.text-green-500                   { color: #6ee7b7 !important; }
+.text-green-600                   { color: #34d399 !important; }
+.hover\:text-green-700:hover      { color: #10b981 !important; }
+.bg-green-600                     { background-color: #059669 !important; }
+.border-green-700                 { border-color: #047857 !important; }
+.text-red-500                     { color: #f87171 !important; }
+.hover\:text-red-500:hover        { color: #f87171 !important; }
+.hover\:text-red-600:hover        { color: #ef4444 !important; }
+.text-amber-500, .text-amber-600, .text-amber-700 { color: #fbbf24 !important; }
+.text-blue-600                    { color: #93c5fd !important; }
+.text-violet-600                  { color: #c4b5fd !important; }
 
-/* backgrounds + hover */
-html[data-theme="glass"] .bg-\[\#dde8f4\]               { background-color: rgba(255,255,255,0.12) !important; box-shadow: none !important; border-color: rgba(255,255,255,0.18) !important; }
-html[data-theme="glass"] .bg-\[\#c8d4e0\]               { background-color: rgba(255,255,255,0.1) !important; }
-html[data-theme="glass"] .bg-\[\#f0f4f8\]               { background-color: rgba(255,255,255,0.06) !important; }
-html[data-theme="glass"] .bg-\[\#b8c8d8\]               { background-color: transparent !important; }
-html[data-theme="glass"] .hover\:bg-\[\#dde8f4\]:hover  { background-color: rgba(255,255,255,0.1) !important; }
-html[data-theme="glass"] .hover\:bg-\[\#b0c4d8\]:hover  { background-color: rgba(255,255,255,0.12) !important; }
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR — ultra-thin, purple-tinted
+═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar              { width: 4px; height: 4px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(139,92,246,0.3); border-radius: 2px; min-height: 24px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(139,92,246,0.55); }
+::-webkit-scrollbar-button       { display: none; }
 
-/* scrollbar */
-html[data-theme="glass"] ::-webkit-scrollbar             { width: 4px; height: 4px; }
-html[data-theme="glass"] ::-webkit-scrollbar-track       { background: transparent; border: none; }
-html[data-theme="glass"] ::-webkit-scrollbar-thumb       { background: rgba(255,255,255,0.25); border: none; box-shadow: none; border-radius: 2px; }
-html[data-theme="glass"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.45); }
-html[data-theme="glass"] ::-webkit-scrollbar-button      { display: none; }
-
-
-/* ── SOFT ANIME ─────────────────────────────────────────────── */
-html[data-theme="anime"] {
-  color: #6d28d9;
-}
-html[data-theme="anime"] .t-app-bg {
-  background: linear-gradient(160deg, #fde8f0 0%, #ede8fb 52%, #e8f4fb 100%);
-}
-html[data-theme="anime"] .t-panel-bg {
-  background: rgba(255,255,255,0.55) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-html[data-theme="anime"] .t-chat-bg {
-  background: rgba(255,255,255,0.65) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-html[data-theme="anime"] .mac-app-bar {
-  background: linear-gradient(90deg, #f9a8d4, #c4b5fd) !important;
-  border-bottom: none;
-  box-shadow: 0 2px 14px rgba(244,114,182,0.3);
-}
-html[data-theme="anime"] .mac-panel-header {
-  background: rgba(255,255,255,0.5) !important;
-  border-color: rgba(244,114,182,0.2);
-  box-shadow: none;
-}
-html[data-theme="anime"] .mac-raised {
-  background: #ffffff !important;
-  border: 1.5px solid rgba(244,114,182,0.25);
-  box-shadow: 0 4px 16px rgba(244,114,182,0.12) !important;
-}
-html[data-theme="anime"] .mac-inset {
-  background: #ffffff !important;
-  border: 1.5px solid rgba(244,114,182,0.35);
-  box-shadow: none;
-}
-html[data-theme="anime"] .mac-window {
-  background: rgba(255,255,255,0.97) !important;
-  border: 1.5px solid rgba(244,114,182,0.3);
-  box-shadow: 0 20px 40px rgba(244,114,182,0.2) !important;
-}
-
-/* text */
-html[data-theme="anime"] .text-\[\#1a2a3a\]              { color: #6d28d9; }
-html[data-theme="anime"] .text-\[\#4a6080\]              { color: #9d6fcd; }
-html[data-theme="anime"] .text-\[\#6080a0\]              { color: #c084fc; }
-html[data-theme="anime"] .text-\[\#3a5070\]              { color: #9d6fcd; }
-html[data-theme="anime"] .text-\[\#7090b0\]              { color: rgba(196,181,253,0.9); }
-html[data-theme="anime"] .text-\[\#5070a0\]              { color: #9d6fcd; }
-html[data-theme="anime"] .hover\:text-\[\#1a2a3a\]:hover { color: #4c1d95 !important; }
-html[data-theme="anime"] .placeholder\:text-\[\#7090b0\]::placeholder { color: rgba(196,181,253,0.9); }
-
-/* borders */
-html[data-theme="anime"] .border-\[\#8090b0\] { border-color: rgba(244,114,182,0.3); }
-html[data-theme="anime"] .border-\[\#7090b0\] { border-color: rgba(244,114,182,0.2); }
-
-/* backgrounds + hover */
-html[data-theme="anime"] .bg-\[\#dde8f4\]               { background-color: #ffffff !important; box-shadow: 0 2px 8px rgba(244,114,182,0.1) !important; border-color: rgba(196,181,253,0.4) !important; }
-html[data-theme="anime"] .bg-\[\#c8d4e0\]               { background-color: rgba(255,255,255,0.8) !important; }
-html[data-theme="anime"] .bg-\[\#f0f4f8\]               { background-color: rgba(255,255,255,0.7) !important; }
-html[data-theme="anime"] .bg-\[\#b8c8d8\]               { background-color: transparent !important; }
-html[data-theme="anime"] .hover\:bg-\[\#dde8f4\]:hover  { background-color: rgba(253,232,240,0.6) !important; }
-html[data-theme="anime"] .hover\:bg-\[\#b0c4d8\]:hover  { background-color: rgba(244,114,182,0.12) !important; }
-
-/* scrollbar */
-html[data-theme="anime"] ::-webkit-scrollbar             { width: 6px; height: 6px; }
-html[data-theme="anime"] ::-webkit-scrollbar-track       { background: rgba(253,232,240,0.4); border-left: none; }
-html[data-theme="anime"] ::-webkit-scrollbar-thumb       { background: rgba(244,114,182,0.4); border: none; box-shadow: none; min-height: 20px; border-radius: 3px; }
-html[data-theme="anime"] ::-webkit-scrollbar-thumb:hover { background: rgba(244,114,182,0.65); }
-html[data-theme="anime"] ::-webkit-scrollbar-button      { display: none; }
-
-
-/* Note editor list styles */
+/* ═══════════════════════════════════════════════════════════════
+   NOTE EDITOR
+═══════════════════════════════════════════════════════════════ */
 .note-editor ul, .note-content ul { list-style-type: disc; padding-left: 1.25rem; margin: 0.2em 0; }
 .note-editor li, .note-content li { margin: 0.1em 0; }
-
-/* ── iMac-era scrollbar — teal/blue tinted ───────────────────── */
-::-webkit-scrollbar              { width: 15px; height: 15px; }
-::-webkit-scrollbar-track        {
-  background: linear-gradient(to right, #b0c4d8, #c0d0e0);
-  border-left: 1px solid #7090b0;
-}
-::-webkit-scrollbar-thumb        {
-  background: linear-gradient(to bottom, #a0c0dc 0%, #80a8cc 100%);
-  border: 1px solid #6080a8;
-  box-shadow: inset 1px 1px 0 #d0e4f4, inset -1px -1px 0 #6080a0;
-  min-height: 24px;
-}
-::-webkit-scrollbar-thumb:hover  {
-  background: linear-gradient(to bottom, #80b0d0 0%, #5890c0 100%);
-}
-::-webkit-scrollbar-button       {
-  background: linear-gradient(to bottom, #c0d4e8, #a8c0d8);
-  border: 1px solid #6080a8;
-  box-shadow: inset 1px 1px 0 #ddeefa, inset -1px -1px 0 #6080a0;
-  height: 15px;
-  display: block;
-}

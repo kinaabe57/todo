@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addTodo: (projectId: string, text: string, source: 'manual' | 'ai') => ipcRenderer.invoke('add-todo', projectId, text, source),
   toggleTodo: (id: string, completed: boolean) => ipcRenderer.invoke('toggle-todo', id, completed),
   deleteTodo: (id: string) => ipcRenderer.invoke('delete-todo', id),
+  updateTodo: (id: string, text: string) => ipcRenderer.invoke('update-todo', id, text),
   moveTodo: (id: string, newProjectId: string) => ipcRenderer.invoke('move-todo', id, newProjectId),
 
   // Subtasks

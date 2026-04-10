@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { Project } from '../../types'
 
 export const PROJECT_COLORS = [
-  { id: 'bondi',      hex: '#0095b6', label: 'Bondi Blue'  },
-  { id: 'blueberry',  hex: '#2244cc', label: 'Blueberry'   },
-  { id: 'grape',      hex: '#8833cc', label: 'Grape'       },
-  { id: 'strawberry', hex: '#cc2255', label: 'Strawberry'  },
-  { id: 'tangerine',  hex: '#dd6600', label: 'Tangerine'   },
-  { id: 'lime',       hex: '#448800', label: 'Lime'        },
-  { id: 'sage',       hex: '#558877', label: 'Sage'        },
-  { id: 'slate',      hex: '#556688', label: 'Slate'       },
-  { id: 'graphite',   hex: '#555566', label: 'Graphite'    },
-  { id: 'flower',     hex: '#bb4488', label: 'Flower'      },
+  { id: 'violet',   hex: '#7c3aed', label: 'Violet'   },
+  { id: 'purple',   hex: '#9333ea', label: 'Purple'   },
+  { id: 'fuchsia',  hex: '#c026d3', label: 'Fuchsia'  },
+  { id: 'rose',     hex: '#e11d48', label: 'Rose'     },
+  { id: 'indigo',   hex: '#4338ca', label: 'Indigo'   },
+  { id: 'sky',      hex: '#0284c7', label: 'Sky'      },
+  { id: 'teal',     hex: '#0d9488', label: 'Teal'     },
+  { id: 'emerald',  hex: '#059669', label: 'Emerald'  },
+  { id: 'amber',    hex: '#d97706', label: 'Amber'    },
+  { id: 'slate',    hex: '#475569', label: 'Slate'    },
 ]
 
 interface AddProjectModalProps {
@@ -50,16 +50,16 @@ export default function AddProjectModal({ project, onAdd, onUpdate, onClose }: A
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="mac-window w-full max-w-md mx-4">
-        <div className="px-4 py-2 mac-panel-header flex items-center gap-2 border-b border-[#8090b0]">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color, boxShadow: '1px 1px 0 rgba(0,0,0,0.3)' }} />
+        <div className="px-4 py-2 mac-panel-header flex items-center gap-2 border-b border-[#8090b0]/20 rounded-t-2xl">
+          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
           <h3 className="text-xs font-bold text-[#1a2a3a] uppercase tracking-wide">
             {isEdit ? 'Edit Project' : 'New Project'}
           </h3>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-3 bg-[#c8d4e0]">
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
           {error && (
-            <div className="p-2 bg-[#f8d0d0] border border-[#c04040] text-xs text-[#802020]">
+            <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
               {error}
             </div>
           )}
@@ -113,18 +113,15 @@ export default function AddProjectModal({ project, onAdd, onUpdate, onClose }: A
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 text-xs text-[#1a2a3a] mac-raised hover:bg-[#b0c4d8] transition-colors"
+              className="px-4 py-1.5 text-xs text-[#1a2a3a] rounded-lg bg-white/50 hover:bg-[#b0c4d8] border border-[#8090b0]/20 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim() || isSaving}
-              className="px-4 py-1.5 text-xs text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              style={{
-                backgroundColor: color,
-                boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.25), inset -1px -1px 0 rgba(0,0,0,0.2), 1px 1px 0 rgba(0,0,0,0.35)'
-              }}
+              className="px-4 py-1.5 text-xs text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              style={{ backgroundColor: color }}
             >
               {isSaving ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Changes' : 'Create Project')}
             </button>

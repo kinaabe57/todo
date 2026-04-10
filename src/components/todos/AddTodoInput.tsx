@@ -25,21 +25,29 @@ export default function AddTodoInput({ projectId, onAddTodo }: AddTodoInputProps
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleAdd()
-    }
+    if (e.key === 'Enter') handleAdd()
   }
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={handleKeyDown}
-      placeholder="+ Add a new todo..."
-      className="w-full px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 mac-inset"
-      disabled={isAdding}
-    />
+    <div className="relative">
+      <button
+        onClick={handleAdd}
+        disabled={!text.trim() || isAdding}
+        tabIndex={-1}
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 font-semibold text-base leading-none transition-colors text-primary-500 hover:text-primary-400 disabled:text-white/20"
+      >
+        +
+      </button>
+      <input
+        ref={inputRef}
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Add a todo…"
+        className="w-full pl-7 pr-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 mac-inset"
+        disabled={isAdding}
+      />
+    </div>
   )
 }

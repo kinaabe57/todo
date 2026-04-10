@@ -323,11 +323,11 @@ interface NoteToolbarProps {
 
 function NoteToolbar({ onBold, onItalic, onUnderline, onBulletList, onCheckbox, onClearFormat, onFontSize }: NoteToolbarProps) {
   return (
-    <div className="flex items-center gap-0.5 pb-2 border-b border-slate-100">
+    <div className="flex items-center gap-0.5 pb-2 border-b border-white/8">
       <ToolBtn title="Bold (⌘B)" onMouseDown={onBold}><strong className="text-xs">B</strong></ToolBtn>
       <ToolBtn title="Italic (⌘I)" onMouseDown={onItalic}><em className="text-xs">I</em></ToolBtn>
       <ToolBtn title="Underline (⌘U)" onMouseDown={onUnderline}><u className="text-xs">U</u></ToolBtn>
-      <div className="w-px h-4 bg-slate-200 mx-1" />
+      <div className="w-px h-4 bg-white/12 mx-1" />
       <ToolBtn title={'Bullet list — or type "- " then space'} onMouseDown={onBulletList}>
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="5" cy="7" r="1.5" fill="currentColor" />
@@ -344,7 +344,7 @@ function NoteToolbar({ onBold, onItalic, onUnderline, onBulletList, onCheckbox, 
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12l3 3 5-5" />
         </svg>
       </ToolBtn>
-      <div className="w-px h-4 bg-slate-200 mx-1" />
+      <div className="w-px h-4 bg-white/12 mx-1" />
       <select
         onMouseDown={e => e.stopPropagation()}
         onChange={e => {
@@ -375,7 +375,7 @@ function ToolBtn({ children, title, onMouseDown }: {
     <button
       title={title}
       onMouseDown={onMouseDown}
-      className="w-6 h-6 flex items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+      className="w-6 h-6 flex items-center justify-center rounded text-white/45 hover:bg-white/10 hover:text-white/80 transition-colors"
     >
       {children}
     </button>
@@ -587,8 +587,7 @@ function NoteCard({ note, projectName, onUpdate, onDelete }: NoteCardProps) {
           </svg>
         </button>
         {projectName && (
-          <span className="text-xs px-1.5 py-0.5 bg-primary-500 text-white font-medium truncate max-w-[90px]"
-            style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.2)' }}>
+          <span className="text-xs px-1.5 py-0.5 bg-primary-500 text-white font-medium rounded-md truncate max-w-[90px]">
             {projectName}
           </span>
         )}
@@ -667,12 +666,11 @@ export default function NotesPanel({ notes, projects, onAddNote, onUpdateNote, o
   return (
     <div className="flex flex-col h-full t-panel-bg">
       <div className="flex items-center justify-between px-3 py-2 mac-panel-header">
-        <h2 className="text-xs font-bold text-[#1a2a3a] uppercase tracking-wide">Notes</h2>
+        <h2 className="text-[11px] font-semibold text-white/45 uppercase tracking-[0.1em]">Notes</h2>
         <button
           onClick={() => setIsCreating(true)}
           disabled={isCreating}
-          className="flex items-center gap-1 px-3 py-1 text-xs bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 transition-colors"
-          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.25), inset -1px -1px 0 rgba(0,0,0,0.2), 1px 1px 0 rgba(0,0,0,0.3)' }}
+          className="flex items-center gap-1 px-3 py-1 text-xs bg-primary-600/80 text-white rounded-lg hover:bg-primary-500/80 disabled:opacity-50 transition-colors backdrop-blur-sm"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

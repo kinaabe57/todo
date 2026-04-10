@@ -39,8 +39,7 @@ export default function ChatInput({ onSendMessage, isLoading, disabled }: ChatIn
         <button
           onClick={handleSubmit}
           disabled={!message.trim() || isLoading || disabled}
-          className="flex-shrink-0 w-9 h-9 bg-primary-500 text-white flex items-center justify-center hover:bg-primary-600 disabled:bg-[#a0a0a0] disabled:cursor-not-allowed transition-colors"
-          style={{ boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.25), inset -1px -1px 0 rgba(0,0,0,0.2), 1px 1px 0 rgba(0,0,0,0.3)' }}
+          className="flex-shrink-0 w-9 h-9 bg-primary-500 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 disabled:bg-[#a0a0a0] disabled:cursor-not-allowed transition-colors"
         >
           {isLoading ? (
             <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">

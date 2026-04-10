@@ -33,10 +33,6 @@ function App() {
   const [showGranolaInbox, setShowGranolaInbox] = useState(false)
   const [granolaRefreshing, setGranolaRefreshing] = useState(false)
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', settings.theme ?? 'classic')
-  }, [settings.theme])
-
   // Panel widths (chat and notes); todos takes remaining space
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [chatWidth, setChatWidth] = useState(340)
@@ -204,6 +200,11 @@ function App() {
     setTodos(todos.filter(t => t.id !== id))
   }
 
+  const handleUpdateTodo = async (id: string, text: string) => {
+    const updated = await window.electronAPI.updateTodo(id, text)
+    setTodos(todos.map(t => t.id === id ? updated : t))
+  }
+
   const handleMoveTodo = async (todoId: string, newProjectId: string) => {
     const updated = await window.electronAPI.moveTodo(todoId, newProjectId)
     setTodos(todos.map(t => t.id === todoId ? updated : t))
@@ -305,8 +306,8 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-lg text-slate-600">Loading...</div>
+      <div className="flex items-center justify-center h-screen t-app-bg">
+        <div className="text-lg text-white/50">Loading...</div>
       </div>
     )
   }
@@ -314,51 +315,50 @@ function App() {
   return (
     <div className="flex flex-col h-screen t-app-bg">
       {/* Header */}
-      <header className="drag-region flex items-center justify-between pl-20 pr-6 py-1.5 mac-app-bar">
-        <h1 className="text-xs font-bold text-white tracking-widest uppercase">Smart Todo</h1>
-        <div className="flex items-center gap-1">
+      <header className="drag-region flex items-center justify-between pl-20 pr-4 py-1 mac-app-bar">
+        <h1 className="text-xs font-semibold text-white/40 tracking-widest uppercase select-none">Smart Todo</h1>
+        <div className="flex items-center gap-0.5">
           {updateInfo?.hasUpdate && updateInfo.phase === 'available' && (
             <button
               onClick={() => window.electronAPI.downloadUpdate()}
-              className="no-drag flex items-center gap-1 px-2 py-1 text-xs text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+              className="no-drag flex items-center gap-1 px-2.5 py-1 text-xs text-primary-400 hover:bg-white/8 rounded-md transition-colors"
               title={`Update to ${updateInfo.latestVersion}`}
             >
-              ▲ Update available
+              ↑ Update available
             </button>
           )}
           {updateInfo?.phase === 'downloading' && (
-            <span className="no-drag text-xs text-white/80 px-2">
+            <span className="no-drag text-xs text-white/45 px-2">
               Downloading… {updateInfo.percent ?? 0}%
             </span>
           )}
           {updateInfo?.phase === 'downloaded' && (
             <button
               onClick={() => window.electronAPI.installUpdate()}
-              className="no-drag text-xs text-white/90 hover:text-white hover:bg-white/10 px-2 py-1 transition-colors"
+              className="no-drag text-xs text-primary-400 hover:bg-white/8 px-2.5 py-1 rounded-md transition-colors"
             >
-              ↻ Restart to update
+              Restart to update
             </button>
           )}
           {updateInfo?.phase === 'error' && (
             <button
               onClick={() => window.electronAPI.openReleasePage()}
-              className="no-drag text-xs text-white/90 hover:text-white hover:bg-white/10 px-2 py-1 transition-colors"
-              title="Download manually from GitHub"
+              className="no-drag text-xs text-red-400 hover:bg-white/8 px-2.5 py-1 rounded-md transition-colors"
             >
-              ⚠ Download manually
+              Download manually
             </button>
           )}
           {settings.granolaApiKey && (
             <button
               onClick={() => setShowGranolaInbox(true)}
-              className="no-drag flex items-center gap-1.5 px-2 py-1 text-xs text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+              className="no-drag flex items-center gap-1.5 px-2.5 py-1 text-xs text-white/45 hover:text-white/80 hover:bg-white/8 rounded-md transition-colors"
               title="Meeting inbox"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {granolaPendingReviews.length > 0 && (
-                <span className="bg-white/20 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                <span className="bg-primary-500 text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
                   {granolaPendingReviews.length}
                 </span>
               )}
@@ -366,8 +366,8 @@ function App() {
           )}
           <button
             onClick={() => setTriggerNewNote(true)}
-            className="no-drag flex items-center gap-1 px-2 py-1 text-xs text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            title="Quick note"
+            className="no-drag flex items-center gap-1 px-2.5 py-1 text-xs text-white/45 hover:text-white/80 hover:bg-white/8 rounded-md transition-colors"
+            title="New note"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -376,7 +376,7 @@ function App() {
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            className="no-drag p-1.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            className="no-drag p-1.5 text-white/40 hover:text-white/70 hover:bg-white/8 rounded-md transition-colors"
             title="Settings"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -409,7 +409,7 @@ function App() {
         {isChatCollapsed ? (
           <button
             onClick={() => setIsChatCollapsed(false)}
-            className="flex-shrink-0 w-6 flex items-center justify-center border-r border-[#7090b0] bg-[#c8d4e0] hover:bg-[#b0c4d8] text-[#4a6080] hover:text-[#1a2a3a] transition-colors"
+            className="flex-shrink-0 w-6 flex items-center justify-center border-r border-white/8 bg-white/4 hover:bg-white/8 text-white/30 hover:text-white/60 transition-colors"
             title="Expand chat"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,7 +418,7 @@ function App() {
           </button>
         ) : (
           <div
-            className="flex-shrink-0 w-1 cursor-col-resize bg-[#808080] hover:bg-primary-400 transition-colors relative group"
+            className="flex-shrink-0 w-px cursor-col-resize bg-white/8 hover:bg-primary-400 transition-colors relative group"
             onMouseDown={startResize('chat')}
           >
             <div className="absolute inset-y-0 -left-1 -right-1" />
@@ -440,6 +440,7 @@ function App() {
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             onDeleteTodo={handleDeleteTodo}
+            onUpdateTodo={handleUpdateTodo}
             onAddNote={handleAddNote}
             onMoveTodo={handleMoveTodo}
             onAddSubtask={handleAddSubtask}
@@ -452,7 +453,7 @@ function App() {
 
         {/* Notes resize handle */}
         <div
-          className="flex-shrink-0 w-1 cursor-col-resize bg-slate-200 hover:bg-primary-300 transition-colors relative"
+          className="flex-shrink-0 w-px cursor-col-resize bg-white/8 hover:bg-primary-400 transition-colors relative"
           onMouseDown={startResize('notes')}
         >
           <div className="absolute inset-y-0 -left-1 -right-1" />

@@ -1,4 +1,6 @@
-import Database from 'better-sqlite3'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+const Database: typeof import('better-sqlite3') = require('better-sqlite3')
 import { v4 as uuidv4 } from 'uuid'
 import { Project, Todo, Note, ChatMessage, AppSettings, Subtask } from '../../src/types'
 
@@ -317,6 +319,12 @@ export class DatabaseService {
       ...row,
       completed: Boolean(row.completed)
     }
+  }
+
+  updateTodo(id: string, text: string): Todo {
+    this.db.prepare('UPDATE todos SET text = ? WHERE id = ?').run(text, id)
+    const row = this.db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as any
+    return { ...row, completed: Boolean(row.completed) }
   }
 
   moveTodo(id: string, newProjectId: string): Todo {

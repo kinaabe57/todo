@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AppSettings, AppTheme } from '../../types'
+import { AppSettings } from '../../types'
 
 interface UpdateInfo {
   hasUpdate: boolean
@@ -22,7 +22,6 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
   const [granolaApiKey, setGranolaApiKey] = useState(settings.granolaApiKey ?? '')
   const [userName, setUserName] = useState(settings.userName ?? '')
   const [celebrationSound, setCelebrationSound] = useState(settings.celebrationSoundEnabled)
-  const [theme, setTheme] = useState<AppTheme>(settings.theme ?? 'classic')
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [showGranolaKey, setShowGranolaKey] = useState(false)
@@ -50,8 +49,7 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
         apiKey,
         celebrationSoundEnabled: celebrationSound,
         granolaApiKey: granolaApiKey || undefined,
-        userName: userName || undefined,
-        theme
+        userName: userName || undefined
       })
     } finally {
       setIsSaving(false)
@@ -59,13 +57,13 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-800">Settings</h3>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="mac-window w-full max-w-md flex flex-col max-h-[calc(100vh-2rem)]">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+          <h3 className="text-base font-semibold text-white/90">Settings</h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
+            className="text-white/40 hover:text-white/70 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -73,7 +71,7 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* API Key Section */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -169,39 +167,6 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
             </div>
           </div>
 
-          {/* Theme Picker */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Theme
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { id: 'classic', label: 'Classic', colors: ['#b8c8d8', '#f0f4f8', '#2563eb'] },
-                { id: 'dark', label: 'Dark Tech', colors: ['#0e1117', '#161b22', '#58a6ff'] },
-                { id: 'glass', label: 'Glassmorphism', colors: ['#1a1040', '#312070', '#a78bfa'] },
-                { id: 'anime', label: 'Anime', colors: ['#fde8f0', '#ede8fb', '#7c3aed'] },
-              ] as { id: AppTheme; label: string; colors: string[] }[]).map(({ id, label, colors }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTheme(id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-left ${
-                    theme === id
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex gap-0.5 shrink-0">
-                    {colors.map((c, i) => (
-                      <div key={i} className="w-3 h-6 rounded-sm" style={{ backgroundColor: c }} />
-                    ))}
-                  </div>
-                  <span className="text-xs font-medium text-slate-700">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Celebration Settings */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -221,35 +186,35 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
           </div>
 
           {/* About Section */}
-          <div className="pt-4 border-t border-slate-200">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">About</h4>
-            <p className="text-xs text-slate-500 mb-3">
+          <div className="pt-4 border-t border-white/10">
+            <h4 className="text-sm font-medium text-white/80 mb-2">About</h4>
+            <p className="text-xs text-white/50 mb-3">
               Smart Todo v{appVersion || '...'}
               <br />
               An intelligent todo app powered by Claude AI.
               <br />
               Your data is stored locally on your computer.
             </p>
-            <div className="text-xs text-slate-400 bg-slate-50 rounded p-2 mb-3">
-              <p className="font-medium text-slate-500 mb-1">How to update the app</p>
+            <div className="text-xs text-white/40 bg-white/5 border border-white/8 rounded-lg p-2 mb-3">
+              <p className="font-medium text-white/55 mb-1">How to update the app</p>
               <ol className="list-decimal list-inside space-y-1">
-                <li>Click <span className="text-slate-500 font-medium">Check for updates</span> below — if an update is available, download it</li>
-                <li>Or go to GitHub releases and download the latest <code className="text-slate-500">.dmg</code> file</li>
-                <li>Open the DMG, drag <span className="text-slate-500 font-medium">Smart Todo</span> into Applications (replace the existing one)</li>
+                <li>Click <span className="text-white/60 font-medium">Check for updates</span> below — if an update is available, download it</li>
+                <li>Or go to GitHub releases and download the latest <code className="text-white/60">.dmg</code> file</li>
+                <li>Open the DMG, drag <span className="text-white/60 font-medium">Smart Todo</span> into Applications (replace the existing one)</li>
                 <li>Eject the DMG</li>
                 <li>Open Terminal and run:<br />
-                  <code className="text-slate-500 select-all">xattr -cr "/Applications/Smart Todo.app"</code>
+                  <code className="text-white/60 select-all">xattr -cr "/Applications/Smart Todo.app"</code>
                 </li>
                 <li>Open Smart Todo from Applications</li>
               </ol>
-              <p className="mt-1.5 text-slate-400">Step 5 is required every time — macOS flags unsigned apps as damaged.</p>
+              <p className="mt-1.5 text-white/35">Step 5 is required every time — macOS flags unsigned apps as damaged.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCheckUpdate}
                 disabled={isCheckingUpdate || updateInfo?.phase === 'downloading'}
-                className="text-xs text-primary-600 hover:text-primary-700 disabled:text-slate-400"
+                className="text-xs text-primary-400 hover:text-primary-300 disabled:text-white/30"
               >
                 {isCheckingUpdate ? 'Checking...' : 'Check for updates'}
               </button>
@@ -257,13 +222,13 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
                 <button
                   type="button"
                   onClick={onDownloadUpdate}
-                  className="text-xs text-green-600 hover:text-green-700"
+                  className="text-xs text-green-400 hover:text-green-300"
                 >
                   v{updateInfo.latestVersion} available — Download
                 </button>
               )}
               {updateInfo?.phase === 'downloading' && (
-                <span className="text-xs text-blue-600">
+                <span className="text-xs text-primary-400">
                   Downloading… {updateInfo.percent ?? 0}%
                 </span>
               )}
@@ -271,7 +236,7 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
                 <button
                   type="button"
                   onClick={onInstallUpdate}
-                  className="text-xs text-green-600 hover:text-green-700 font-medium"
+                  className="text-xs text-green-400 hover:text-green-300 font-medium"
                 >
                   Restart to update
                 </button>
@@ -280,7 +245,7 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
                 <span className="text-xs text-red-500">Update failed</span>
               )}
               {updateInfo && !updateInfo.hasUpdate && updateInfo.phase !== 'error' && (
-                <span className="text-xs text-slate-400">You're up to date!</span>
+                <span className="text-xs text-white/35">You're up to date!</span>
               )}
             </div>
           </div>
@@ -289,14 +254,14 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
+              className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? 'Saving...' : 'Save Settings'}
             </button>
@@ -306,3 +271,4 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
     </div>
   )
 }
+
