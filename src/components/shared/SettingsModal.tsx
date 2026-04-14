@@ -17,11 +17,16 @@ interface SettingsModalProps {
   onInstallUpdate: () => void
 }
 
-export default function SettingsModal({ settings, onSave, onClose, updateInfo, onDownloadUpdate, onInstallUpdate }: SettingsModalProps) {
+export default function SettingsModal({ settings, onSave, onClose: onCloseProp, updateInfo, onDownloadUpdate, onInstallUpdate }: SettingsModalProps) {
+  const onClose = () => {
+    document.documentElement.setAttribute('data-theme', settings.theme ?? 'glass')
+    onCloseProp()
+  }
   const [apiKey, setApiKey] = useState(settings.apiKey)
   const [granolaApiKey, setGranolaApiKey] = useState(settings.granolaApiKey ?? '')
   const [userName, setUserName] = useState(settings.userName ?? '')
   const [celebrationSound, setCelebrationSound] = useState(settings.celebrationSoundEnabled)
+  const [theme, setTheme] = useState<'glass' | 'pacman'>(settings.theme ?? 'glass')
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [showGranolaKey, setShowGranolaKey] = useState(false)
@@ -31,6 +36,11 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
   useEffect(() => {
     window.electronAPI.getAppVersion().then(setAppVersion)
   }, [])
+
+  // Live preview — revert to saved theme on cancel
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
 
   const handleCheckUpdate = async () => {
     setIsCheckingUpdate(true)
@@ -49,7 +59,8 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
         apiKey,
         celebrationSoundEnabled: celebrationSound,
         granolaApiKey: granolaApiKey || undefined,
-        userName: userName || undefined
+        userName: userName || undefined,
+        theme
       })
     } finally {
       setIsSaving(false)
@@ -164,6 +175,34 @@ export default function SettingsModal({ settings, onSave, onClose, updateInfo, o
                 )}
               </button>
             </div>
+            </div>
+          </div>
+
+          {/* Appearance */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              Appearance
+            </label>
+            <div className="flex gap-2">
+              {([
+                { id: 'glass',  label: 'Glass',    dot: '#8b5cf6' },
+                { id: 'pacman', label: 'Pac-Man',  dot: '#FFD700' },
+              ] as const).map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTheme(t.id)}
+                  className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                    theme === t.id
+                      ? 'border-white/30 text-white/90 bg-white/8'
+                      : 'border-white/8 text-white/35 hover:border-white/15 hover:text-white/55'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.dot }} />
+                  {t.label}
+                  {theme === t.id && <span className="ml-auto text-white/30">✓</span>}
+                </button>
+              ))}
             </div>
           </div>
 

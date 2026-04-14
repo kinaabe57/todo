@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
-import { createRequire } from 'module'
+import { fileURLToPath } from 'url'
+import { createRequire } from 'node:module'
 import { DatabaseService } from './services/database'
 import { ClaudeService } from './services/claude'
 import { GranolaService, extractSummary } from './services/granola'
@@ -35,13 +35,13 @@ function setupAutoUpdater() {
     owner: 'kinaabe57',
     repo: 'todo'
   })
-  autoUpdater.on('update-available', (info) => {
+  autoUpdater.on('update-available', (info: { version: string }) => {
     sendUpdateStatus('available', { version: info.version })
   })
   autoUpdater.on('update-not-available', () => {
     sendUpdateStatus('not-available')
   })
-  autoUpdater.on('download-progress', (progress) => {
+  autoUpdater.on('download-progress', (progress: { percent: number }) => {
     sendUpdateStatus('progress', { percent: Math.round(progress.percent) })
   })
   autoUpdater.on('update-downloaded', () => {
@@ -226,7 +226,7 @@ ipcMain.handle('delete-subtask', (_event, id: string) => {
 })
 
 ipcMain.handle('complete-all-subtasks', (_event, todoId: string) => {
-  return db.completeAllSubtasks(todoId)
+  return db.completeAllSubtasks(todoId) 
 })
 
 // IPC Handlers for Notes

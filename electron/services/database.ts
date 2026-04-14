@@ -1,4 +1,4 @@
-import { createRequire } from 'module'
+import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const Database: typeof import('better-sqlite3') = require('better-sqlite3')
 import { v4 as uuidv4 } from 'uuid'

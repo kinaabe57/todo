@@ -386,9 +386,9 @@ export default function TodoPanel({
         </h2>
         <button
           onClick={() => setShowAddProject(true)}
-          className="text-xs bg-primary-600/70 text-white/90 px-3 py-1 rounded-lg hover:bg-primary-500/80 transition-colors flex items-center gap-1 backdrop-blur-sm border border-primary-400/20"
+          className="glass-btn-primary text-xs px-3 py-1 rounded-lg flex items-center gap-1"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           New Project
@@ -399,12 +399,16 @@ export default function TodoPanel({
         {localProjects.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-slate-500">
-              <div className="text-4xl mb-4">📁</div>
-              <p className="text-lg font-medium">No projects yet</p>
-              <p className="text-sm mt-2">Create your first project to start adding todos</p>
+              <div className="flex justify-center mb-4">
+                <svg className="w-10 h-10 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7a2 2 0 012-2h3.586a1 1 0 01.707.293L10.414 6.5H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                </svg>
+              </div>
+              <p className="text-base font-medium text-white/60">No projects yet</p>
+              <p className="text-sm mt-1.5 text-white/30">Create your first project to start adding todos</p>
               <button
                 onClick={() => setShowAddProject(true)}
-                className="mt-4 text-xs bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+                className="mt-5 glass-btn-primary text-xs px-4 py-2 rounded-lg"
               >
                 Create Project
               </button>
@@ -418,6 +422,7 @@ export default function TodoPanel({
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
+
             <SortableContext
               items={localProjects.map(p => p.id)}
               strategy={verticalListSortingStrategy}

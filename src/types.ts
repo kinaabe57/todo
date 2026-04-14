@@ -56,6 +56,7 @@ export interface AppSettings {
   celebrationSoundEnabled: boolean;
   granolaApiKey?: string;
   userName?: string;
+  theme?: 'glass' | 'pacman';
 }
 
 export interface GranolaSuggestedTodo {

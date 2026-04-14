@@ -33,6 +33,10 @@ function App() {
   const [showGranolaInbox, setShowGranolaInbox] = useState(false)
   const [granolaRefreshing, setGranolaRefreshing] = useState(false)
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', settings.theme ?? 'glass')
+  }, [settings.theme])
+
   // Panel widths (chat and notes); todos takes remaining space
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [chatWidth, setChatWidth] = useState(340)
@@ -316,7 +320,7 @@ function App() {
     <div className="flex flex-col h-screen t-app-bg">
       {/* Header */}
       <header className="drag-region flex items-center justify-between pl-20 pr-4 py-1 mac-app-bar">
-        <h1 className="text-xs font-semibold text-white/40 tracking-widest uppercase select-none">Smart Todo</h1>
+        <h1 className="text-[11px] font-semibold text-white/32 tracking-[0.18em] uppercase select-none">Smart Todo</h1>
         <div className="flex items-center gap-0.5">
           {updateInfo?.hasUpdate && updateInfo.phase === 'available' && (
             <button
@@ -409,19 +413,19 @@ function App() {
         {isChatCollapsed ? (
           <button
             onClick={() => setIsChatCollapsed(false)}
-            className="flex-shrink-0 w-6 flex items-center justify-center border-r border-white/8 bg-white/4 hover:bg-white/8 text-white/30 hover:text-white/60 transition-colors"
+            className="flex-shrink-0 w-5 flex items-center justify-center border-r border-white/5 hover:bg-white/5 text-white/25 hover:text-white/55 transition-all duration-200"
             title="Expand chat"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         ) : (
           <div
-            className="flex-shrink-0 w-px cursor-col-resize bg-white/8 hover:bg-primary-400 transition-colors relative group"
+            className="flex-shrink-0 w-px cursor-col-resize bg-white/5 hover:bg-primary-500/60 transition-colors duration-200 relative group"
             onMouseDown={startResize('chat')}
           >
-            <div className="absolute inset-y-0 -left-1 -right-1" />
+            <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
           </div>
         )}
 
@@ -453,10 +457,10 @@ function App() {
 
         {/* Notes resize handle */}
         <div
-          className="flex-shrink-0 w-px cursor-col-resize bg-white/8 hover:bg-primary-400 transition-colors relative"
+          className="flex-shrink-0 w-px cursor-col-resize bg-white/5 hover:bg-primary-500/60 transition-colors duration-200 relative"
           onMouseDown={startResize('notes')}
         >
-          <div className="absolute inset-y-0 -left-1 -right-1" />
+          <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
         </div>
 
         {/* Notes panel */}
