@@ -2,7 +2,7 @@
   "name": "smart-todo",
   "version": "1.0.17",
   "type": "module",
-  "description": "Intelligent To-Do Recommendation App powered by Claude",
+  "description": "Intelligent To-Do app powered by Claude AI",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
